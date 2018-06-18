@@ -10,6 +10,9 @@ class exponential:
     # k_on is exponential distribution clustering paramter for "ON" states, k_off for "OFF"
     # duration is the total simulation time, in seconds
     # stepsize is the number of seconds per step (e.g. 3 seconds per observation)
+        self.k_on = k_on
+        self.k_off = k_off
+        self.stepsize = stepsize
 
         on_off = np.zeros((duration//stepsize))                                             # create array of on-off durations
         on_off[0::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[0::2]))      # fill every other value with exponentially-distributed off durations
@@ -32,5 +35,5 @@ class exponential:
 
         self.signal = promoter_arr                      # returns telegraph signal of promoter indexed by stepsize (discrete steps).
         self.step_arr = step_arr
-        
+
 
