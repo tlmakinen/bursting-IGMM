@@ -10,7 +10,7 @@ class exponential:
     # k_on is exponential distribution clustering paramter for "ON" states, k_off for "OFF"
     # duration is the total simulation time, in seconds
     # stepsize is the number of seconds per step (e.g. 3 seconds per observation)
-        self.k_on = k_on            # mean of "ON" time exponential distribution u = 1./k_on
+        self.k_on = k_on            # mean of "ON" time exponential distribution mu = 1./k_on
         self.k_off = k_off          # mean of "OFF" time exponential distribution
         self.stepsize = stepsize    # number of seconds per sample step
 
