@@ -52,5 +52,5 @@ class gfp_signal:
             loopnum=0                                   # reset the loop counter
 
         self.counts = molecule_signal*cts_per_gfp       # returns the simulated GFP photon counts
-        self.norm = molecule_signal                     # normalized autocorrelation
+        self.norm = molecule_signal                     # signal without photon counts
             
