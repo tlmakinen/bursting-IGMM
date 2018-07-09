@@ -13,7 +13,7 @@ class gfp_signal:
         self.stepsize = stepsize
 
         
-        loops_per_step = k_gfp / stepsize          # get k_gfp from molecules / sec --> molecules / step
+        loops_per_step = k_gfp * stepsize          # get k_gfp from molecules / sec --> molecules / step
         
         polII_per_step = k_polII / stepsize    # start rate of polII in terms of discrete timesteps
 
@@ -41,10 +41,6 @@ class gfp_signal:
                 polII_arr = [j+1 for j in polII_arr] 
                 loopnum = 0                             # reset the GFP loop counter for the discretized rate.
                 
-            #for i in range(len(polII_arr)):
-                #if polII_arr[i] > max_loops:
-                    #polII_arr[i] = 0                
-
             keep = np.asarray(polII_arr) <= max_loops   # if we've gone over the max number of GFP loops, set polII element to zero since 
                                                         # the chain of GFP attached to that polII will decay really quickly     
                                                                          
