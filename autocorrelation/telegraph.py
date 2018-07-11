@@ -27,7 +27,7 @@ class exponential:
         step_arr = np.zeros(duration//stepsize)         # create our time step array (not really needed)
                                     
         for i in range(len(promoter_arr)):
-            t1 = (on_off[i] // stepsize)              # find the time until which the signal changes state
+            t1 = int(on_off[i] / stepsize)              # find the time until which the signal changes state
             promoter_arr[t0:(t0 + t1)] = signal         # for the given duration of the ith state, fill the value with either "ON" or "OFF" values
             signal = 1 - signal                         # change the signal by flipping the switch to either 1 or 0.
             t0 = t0 + t1                                # move on in time
