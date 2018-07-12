@@ -10,9 +10,9 @@ class exponential:
     # k_on is exponential distribution clustering paramter for "ON" states, k_off for "OFF"
     # duration is the total simulation time, in seconds
     # stepsize is the number of seconds per step (e.g. 3 seconds per observation)
-        self.k_on = k_on
-        self.k_off = k_off
-        self.stepsize = stepsize
+        self.k_on = k_on            # mean of "ON" time exponential distribution mu = 1./k_on
+        self.k_off = k_off          # mean of "OFF" time exponential distribution
+        self.stepsize = stepsize    # number of seconds per sample step
 
         on_off = np.zeros((duration//stepsize))                                             # create array of on-off durations
         on_off[0::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[0::2]))      # fill every other value with exponentially-distributed off durations
@@ -20,14 +20,14 @@ class exponential:
 
         promoter_arr = np.zeros((duration//stepsize))
             
-        signal = 0           # start in the off state
-        t0 = 0               # start at t0
-        t1 = 0               # step size to be chosen in loop
+        signal = 0      # start in the off state
+        t0 = 0          # start at t0
+        t1 = 0          # step size to be chosen in loop
         
         step_arr = np.zeros(duration//stepsize)         # create our time step array (not really needed)
                                     
         for i in range(len(promoter_arr)):
-            t1 = int(on_off[i] / stepsize)              # find the time until which the signal remains in its state
+            t1 = int(on_off[i] / stepsize)              # find the time until which the signal changes state
             promoter_arr[t0:(t0 + t1)] = signal         # for the given duration of the ith state, fill the value with either "ON" or "OFF" values
             signal = 1 - signal                         # change the signal by flipping the switch to either 1 or 0.
             t0 = t0 + t1                                # move on in time
