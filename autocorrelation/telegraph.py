@@ -15,8 +15,8 @@ class exponential:
         self.stepsize = stepsize    # number of seconds per sample step
 
         on_off = np.zeros((duration//stepsize))                                             # create array of on-off durations
-        on_off[0::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[0::2]))      # fill every other value with exponentially-distributed off durations
-        on_off[1::2] = np.random.exponential(scale=(1./k_on), size=len(on_off[1::2]))       # then fill in every other place with "ON" durations
+        on_off[0::2] = np.random.exponential(scale=(1./k_on), size=len(on_off[0::2]))      # fill every other value with exponentially-distributed on durations
+        on_off[1::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[1::2]))       # then fill in every other place with "off" durations
 
         promoter_arr = np.zeros((duration//stepsize))
             

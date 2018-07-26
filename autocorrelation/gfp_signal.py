@@ -3,26 +3,27 @@ import numpy as np
 
 class gfp_signal:
 
-    def __init__(self, telegraph, k_gfp, cts_per_gfp, k_polII, max_loops, stepsize):
+    def __init__(self, telegraph, k_elong, tPol, max_loops, stepsize):
         
         self.telegraph = telegraph
-        self.k_gfp = k_gfp
-        self.cts_per_gfp = cts_per_gfp
-        self.k_polII = k_polII
-        self.max_loops = max_loops
-        self.stepsize = stepsize
+        self.k_elong = k_elong               # MS2 chain elongation rate; default is 25 bp/s
+        self.tPol = tPol                     # default PolII loading time is 6s for desponds,3 for Lagha
+        self.max_loops = max_loops           # 24 loops for MS2 system
+        self.stepsize = stepsize             # observation time
 
         
-        loops_per_step = k_gfp * stepsize          # get k_gfp from molecules / sec --> molecules / step
+        sizePol = k_elong * tPol            # "footprint" size of polII molecule on gene, in bp
         
-        polII_per_step = k_polII / stepsize    # start rate of polII in terms of discrete timesteps
+        ms2loop_rate = 0.11                 # approximate rate (loops / second) of ms2 cassette
+
+        polII_per_step = tPol / stepsize    # start rate of polII in terms of discrete timesteps
 
         molecule_signal = np.zeros(len(telegraph))    # empty array of mRNA-GFP loops
         
         polII_arr = []   # empty array of polII molecules that will grow according to the pol_per_step rate.
                         # This is a list of strands of molecules
         
-        # max_loops = 24   # max number of GFP loops per strand
+        
         counter = 0      # keep track of how many time steps we've taken since we added the last polII molecule
         loopnum = 0      # keep track of the number of steps we've taken since we added the last loop
 
@@ -35,18 +36,17 @@ class gfp_signal:
                     polII_arr = np.append(polII_arr, 0)
                     counter = 0                         # restart counter
                             
-            loopnum += 1                                # start the GFP loop counter
+            #loopnum += ms2loop_rate                                # start the GFP loop counter
 
-            if (loopnum/loops_per_step) >= 1:           # add a new GFP loop to each polII molecule in the loop array according to GFP loop rate               
-                polII_arr = [j+1 for j in polII_arr] 
-                loopnum = 0                             # reset the GFP loop counter for the discretized rate.
+            #if (loopnum) >= 1:                  # add a new GFP loop to each polII molecule in the loop array according to GFP loop rate               
+            polII_arr = [j+1 for j in polII_arr] 
+            loopnum = 0                             # reset the GFP loop counter for the discretized rate.
                 
             keep = np.asarray(polII_arr) <= max_loops   # if we've gone over the max number of GFP loops, set polII element to zero since 
                                                         # the chain of GFP attached to that polII will decay really quickly     
                                                                          
-            molecule_signal[s] = sum(keep*polII_arr)    # sum up the number of GFP molecules from the polII list
+            molecule_signal[s] = np.sum(keep*polII_arr)    # sum up the number of GFP molecules from the polII list
             loopnum=0                                   # reset the loop counter
 
-        self.counts = molecule_signal*cts_per_gfp       # returns the simulated GFP photon counts
-        self.norm = molecule_signal                     # signal without photon counts
+        self.signal = molecule_signal                     # signal without photon counts
             
