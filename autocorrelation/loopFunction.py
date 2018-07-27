@@ -6,7 +6,7 @@ import numpy as np
 
 class ms2Loops():
 
-    def __init__(self, despondsfile, tPol, k_elong, sizePol):
+    def __init__(self, despondsfile, tPol, k_elong):
         # load in Desponds et al's loop function
         sizePol = tPol * k_elong
         loopFn = spio.loadmat(despondsfile)
@@ -20,7 +20,8 @@ class ms2Loops():
         for i in range(len(ms)//sizePol):    
             Li_fn.append(np.sum(ms[(sizePol*(i-1)+1) : (sizePol*i)]) / sizePol)
         
-        if (i < len(ms) // sizePol):
-            Li_fn[i] = np.sum(ms[(sizePol*(i)+1):-1]) / sizePol
+        #if (i < len(ms) // sizePol):
+            #Li_fn[i] = np.sum(ms[(sizePol*(i)+1):-1]) / sizePol
             
-        self.loopFn = Li_fn
+        self.loopsByPolPosition = np.asarray(Li_fn)
+        self.loopsByBp = ms

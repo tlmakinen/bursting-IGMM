@@ -36,7 +36,7 @@ class tracePackageAutocorrelation:
         self.stop_index = stop_index
         self.tPol  = tPol
         self.k_elong = k_elong
-        self.sizePol = tPol * k_elong
+        sizePol = self.tPol * self.k_elong
 
         despondsfile = 'standalone/therightL.mat'
 
@@ -55,7 +55,7 @@ class tracePackageAutocorrelation:
             max_intens.append(np.max(table[j][start_index:stop_index])) # get maximum fluorescence from each trace in given region
         
         Imax = np.mean(np.asarray(max_intens))   # mean of the maxima of all traces in set
-        loopfn = ms2Loops(despondsfile, self.tPol, self.k_elong).loopFn
+        loopfn = ms2Loops(despondsfile, self.tPol, self.k_elong).loopsByPolPosition  # loops indexed by position i
         I_o = Imax / np.sum(loopfn) *150
         
         for name in table.colnames:
@@ -81,14 +81,14 @@ class tracePackageAutocorrelation:
                         sm2 += (corrected_trace[k]**2)
                     norm.append(((len(corrected_trace)-float(r)) / len(corrected_trace)) * sm2)
                 auto_norm = auto / (np.asarray(norm))
-            autolist.append(auto_norm) #/ auto_norm[1])   # normalize by second data point--> VERIFY
+            autolist.append(auto_norm / auto_norm[1])   # normalize by second data point--> VERIFY
             tracelist.append(calibrated_trace)
             tracelist_corr.append(corrected_trace)
             
         autoav = np.nanmean(np.asarray(autolist), axis=0)
         autostd = np.nanstd(np.asarray(autolist), axis=0)
 
-        self.autoav = autoav[1:]                # return the function starting from the second, normalized point
+        self.autoav = (autoav)[1:]                # return the function starting from the second, normalized point
         self.autostd = autostd[1:]              # array of standard deviations of each autocorrelated time point
         self.tracelist_corr = tracelist_corr    # F(t) - mean(F(t)) : calibrated and corrected traces
         self.tracelist = tracelist              # calibrated traces (mean not subtracted.. for Pon calculation)
