@@ -14,11 +14,11 @@ class exponential:
         self.k_off = k_off          # mean of "OFF" time exponential distribution
         self.stepsize = stepsize    # number of seconds per sample step
 
-        on_off = np.zeros((duration))#//stepsize))                                             # create array of on-off durations
-        on_off[0::2] = np.random.exponential(scale=(1./k_on), size=len(on_off[0::2]))      # fill every other value with exponentially-distributed on durations
-        on_off[1::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[1::2]))       # then fill in every other place with "off" durations
+        on_off = np.zeros((duration))                                                   # create array of on-off durations in seconds
+        on_off[0::2] = np.random.exponential(scale=(1./k_on), size=len(on_off[0::2]))   # fill every other value with exponentially-distributed on durations
+        on_off[1::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[1::2]))  # then fill in every other place with "off" durations
 
-        promoter_arr = np.zeros((duration))#//stepsize))
+        promoter_arr = np.zeros((duration))
             
         signal = 0      # start in the off state
         t0 = 0          # start at t0
@@ -26,7 +26,7 @@ class exponential:
         
                                             
         for i in range(len(promoter_arr)):
-            t1 = int(on_off[i] / stepsize)              # find the time until which the signal changes state
+            t1 = int(on_off[i])                         # find the time until which the signal changes state
             promoter_arr[t0:(t0 + t1)] = signal         # for the given duration of the ith state, fill the value with either "ON" or "OFF" values
             signal = 1 - signal                         # change the signal by flipping the switch to either 1 or 0.
             t0 = t0 + t1                                # move on in time
