@@ -1,5 +1,5 @@
 """
-Python script to generate a package of N MS2 GFP loop traces of common length M. 
+Python script to stochastically simulate (SS) a package of N MS2 GFP loop traces of common length M. 
 Method will utilize a two-state promoter model, assuming exponentially-distributed
 kon and koff values 
 
@@ -28,38 +28,33 @@ from scipy.optimize import curve_fit
 from astropy.table import Table
 
 # import our analysis functions
-from loopFunction import ms2Loops
 import gfp_signal
 from telegraph import exponential
 
 
-
-
 class tracePackageSimulation():
 
-    def __init__(self, k_on, k_off, duration, stepsize, max_loops, k_elong, tPol):
-        self.tPol = tPol
-        self.k_elong = k_elong
-        self.sizePol = tPol * k_elong
+    def __init__(self, num_traces, k_on, k_off, duration, stepsize, loop_function, k_elong, tPol):
+        
+        self.num_traces = num_traces
+        self.tPol = tPol                      # RNA polII loading time
+        self.k_elong = k_elong                # polII speed along gene
+        self.sizePol = tPol * k_elong         # polII "footprint" on gene
+        self.loop_function = loop_function    # array of loops indexed by gene basepair coordinate
+        self.kon = k_on                       # ON time distribution rate constant
+        self.koff = k_off                     # OFF time distribution rate constant
 
-        self.kon = k_on
-        self.koff = k_off
-        # load in Desponds et al's loop function
-        #despondsfile = "standalone/therightL.mat"
-        #ms2loops = ms2Loops(dspondsfile, self.tPol, self.k_elong)
-
-auto_traces = []    # empty list of autocorrelation arrays
-tracelist = []      # empty list of traces 
-corrected_traces = []     # corrected traces
-max_list = []
+        tracelist = []                        # empty list of traces 
+        max_list = []
 
 
-
-for i in range(num):
-    tel = exponential(k_on, k_off, duration, stepsize)  # create a new signal every time      
-    gfp = gfp_signal.gfp_signal(telegraph=tel.signal, k_elong=k_elong, max_loops=max_loops, tPol=tPol, stepsize=stepsize)
-    
-    trace = np.asarray(gfp.signal) 
-    
-    tracelist.append(trace)
-    max_list.append(np.max(np.asarray(trace)))
+        for i in range(self.num_traces):
+            tel = exponential(k_on, k_off, duration)  # create a new signal every time      
+            gfp = gfp_signal.gfp_signal(telegraph=tel.signal, k_elong=self.k_elong, 
+                                        loop_function=self.loop_function, tPol=tPol, stepsize=stepsize)
+            trace = np.asarray(gfp.signal) 
+            tracelist.append(trace)
+            max_list.append(np.max(np.asarray(trace)))    
+        
+        self.tracelist = tracelist                  # array of generated traces
+        self.max_list = max_list                    # array of trace maxima for p_on fitting later 

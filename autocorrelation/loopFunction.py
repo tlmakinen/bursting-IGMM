@@ -4,7 +4,7 @@
 import scipy.io as spio
 import numpy as np
 
-class ms2Loops():
+class DespondsMs2Loops():
 
     def __init__(self, despondsfile, tPol, k_elong):
         # load in Desponds et al's loop function
@@ -25,3 +25,12 @@ class ms2Loops():
             
         self.loopsByPolPosition = np.asarray(Li_fn)
         self.loopsByBp = ms
+
+#class SnailPromoterMs2Loops():
+    '''
+    Create the loop agglomeration pattern for Snail promoter with
+    known polII speed (k_elong) and polII loading time (tPol)
+    '''
+    #def __init__(self, tPol, k_elong):
+         #self.tPol = tPol
+        # self.k_elong = k_elong

@@ -6,14 +6,13 @@ simulate promoter site activation for gene transcription"""
 
 import numpy as np
 class exponential:
-    def __init__(self, k_on, k_off, duration, stepsize):
+    def __init__(self, k_on, k_off, duration):
     # k_on is exponential distribution clustering paramter for "ON" states, k_off for "OFF"
     # duration is the total simulation time, in seconds
     # stepsize is the number of seconds per step (e.g. 3 seconds per observation)
         self.k_on = k_on            # mean of "ON" time exponential distribution mu = 1./k_on
         self.k_off = k_off          # mean of "OFF" time exponential distribution
-        self.stepsize = stepsize    # number of seconds per sample step
-
+        
         on_off = np.zeros((duration))                                                   # create array of on-off durations in seconds
         on_off[0::2] = np.random.exponential(scale=(1./k_on), size=len(on_off[0::2]))   # fill every other value with exponentially-distributed on durations
         on_off[1::2] = np.random.exponential(scale=(1./k_off), size=len(on_off[1::2]))  # then fill in every other place with "off" durations

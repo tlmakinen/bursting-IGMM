@@ -1,25 +1,43 @@
-"""Simulates GFP step-loop agglomeration according to a given promoter state binary telegraph signal """
+"""
+Simulates GFP step-loop agglomeration according to a given promoter state binary telegraph signal 
+Assumes that the MS2 system loop agglomeration function is known
+
+Inputs:
+
+ 
+   MS2 Casette system input parameters:
+   telegraph                            #  binary array of ON/OFF times indexed in seconds representing the 
+                                        #  promoter state
+
+   Default Parameters (from Desponds et al) 
+
+   tPol = 6 seconds                     #  RNA polII loading time
+   k_elong = 25 bp / second             #  elongation rate of polII along gene
+   sizePol = tPol * k_elong = 150 bp    #  effective 'footprint' of polII along gene
+   loop_function                        #  stepwise function (array indexed by bp) describing the number of MS2 loops accumulated
+                                        #  at given position (in base pairs) along gene
+
+
+"""
 import numpy as np
-from loopFunction import ms2Loops  # get Desponds MS2 loop function
 
 class gfp_signal:
 
-    def __init__(self, telegraph, k_elong, tPol, max_loops, stepsize):
+    def __init__(self, telegraph, k_elong, tPol, loop_function, stepsize):
 
-        despondsfile = 'standalone/therightL.mat'
-        
+              
         self.telegraph = telegraph           # promoter state signal in SECONDS
         self.k_elong = k_elong               # polII elongation rate; default is 25 bp/s
         self.tPol = tPol                     # polII loading time in SECONDS
                                              # default PolII loading time is 6s for desponds,3 for Lagha
-        self.max_loops = max_loops           # 24 loops for MS2 system
+        self.loop_function = loop_function   # known loop agglomeration pattern for MS2 system
         self.stepsize = stepsize             # observation time
 
         # now let's load in the stepwise MS2 loop agglomeration. Desponds et al
         # calculated this and created a nice little function of MS2 loops by basepair
         # along the gene. We're going to put this in terms of seconds using the polII 
         # rate, k_elong.
-        ms2loops = ms2Loops(despondsfile, self.tPol, self.k_elong).loopsByBp
+        ms2loops = self.loop_function
         gene = np.arange(len(ms2loops))               # gene index, by basepair
         molecule_signal = np.zeros(len(telegraph))    # empty array of signal at every given time point
         polII_arr = []   # empty array of polII molecules that will grow according to the pol_per_step rate.
