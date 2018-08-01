@@ -21,7 +21,7 @@ Inputs:
 """
 import numpy as np
 
-class gfp_signal:
+class pol_signal:
 
     def __init__(self, telegraph, k_elong, tPol, loop_function, stepsize):
 

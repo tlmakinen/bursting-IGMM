@@ -28,7 +28,7 @@ from scipy.optimize import curve_fit
 from astropy.table import Table
 
 # import our analysis functions
-import gfp_signal
+import pol_signal
 from telegraph import exponential
 
 
@@ -46,15 +46,17 @@ class tracePackageSimulation():
 
         tracelist = []                        # empty list of traces 
         max_list = []
-
+        tel_list = []                         # list of telegraph signals
 
         for i in range(self.num_traces):
             tel = exponential(k_on, k_off, duration)  # create a new signal every time      
-            gfp = gfp_signal.gfp_signal(telegraph=tel.signal, k_elong=self.k_elong, 
+            pol = pol_signal.pol_signal(telegraph=tel.signal, k_elong=self.k_elong, 
                                         loop_function=self.loop_function, tPol=tPol, stepsize=stepsize)
-            trace = np.asarray(gfp.signal) 
+            trace = np.asarray(pol.signal) 
             tracelist.append(trace)
+            tel_list.append(tel.signal)
             max_list.append(np.max(np.asarray(trace)))    
         
         self.tracelist = tracelist                  # array of generated traces
         self.max_list = max_list                    # array of trace maxima for p_on fitting later 
+        self.tel_list = tel_list

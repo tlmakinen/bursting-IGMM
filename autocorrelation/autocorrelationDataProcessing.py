@@ -19,9 +19,6 @@
    """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import gfp_signal
-from telegraph import exponential
 from scipy.optimize import curve_fit
 from astropy.table import Table
 
@@ -39,15 +36,13 @@ def findMiddleIndex(input_list):
 
 class tracePackageAutocorrelation:
 
-    def __init__(self, tracelist, loop_function, start_index, stop_index, tPol, k_elong):
+    def __init__(self, tracelist, loop_function, start_index, stop_index):
         # compute autocorrelation with long time traces
         self.tracelist = tracelist     # list of spot intensities over time
         self.start_index = start_index
         self.stop_index = stop_index
-        self.tPol  = tPol
-        self.k_elong = k_elong
         self.loop_function = np.asarray(loop_function)
-        sizePol = self.tPol * self.k_elong
+        
 
     
         # compute autocorrelation with long time traces
@@ -109,8 +104,8 @@ class tracePackageAutocorrelation:
         for i in calibrated_tracelist:
             avg_flors.append(np.mean(i))            # stack in an array
 
-
-        self.avgflors = np.asarray(avg_flors)       # return array of average fluorescence
+        self.loop_function = loop_function                 # for fitting reference
+        self.avgflors = np.asarray(avg_flors)              # return array of average fluorescence
         self.autoav = autoav[1:]                           # ignore the unfitted first point
         self.autostd = autostd[1:]   
         self.calibrated_tracelist = calibrated_tracelist   # intensity-calibrated traces
