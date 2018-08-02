@@ -15,7 +15,8 @@ class DespondsMs2Loops():
         ms = ms[0]              # stupid matLab puts an array inside an array
         
         
-        # make the L(i) function (array of values)
+        # Interpolate the loop function over polII positions on gene to aid in computation time
+        # L(i) function in Desponds paper with i = polII position
         Li_fn = []
         for i in range(len(ms)//sizePol):    
             Li_fn.append(np.sum(ms[(sizePol*(i-1)+1) : (sizePol*i)]) / sizePol)
@@ -50,13 +51,27 @@ class SnailPromoterMs2Loops():
                     waitbp = 50
                 else:
                     waitbp = 20
-                                    
-                if loopnum > maxloops:
+
+                if loopnum > maxloops:    # When we reach the maximum loops in the chain, don't add any more.
                     loopnum = maxloops
-            
+
                 loopchain[bp:(bp + waitbp)] = loopnum
-              
             else:
                 counter += 1
         self.loop_function = np.append(np.zeros(loadlength), loopchain)   # add in the start region at beginning of gene
+        
+
+
+    # Now interpolate loop function by polII position to cut down on computation time
+def loopInterpolate(loop_function, k_elong, tPol):
+    sizePol = k_elong * tPol
+    loop_fn_interp = []
+    counter=0
+    for i in range(len(loop_function)):
+        if counter / sizePol >= 1:
+            loop_fn_interp.append(loop_function[i])
+            counter=0
+        else:
+            counter += 1
+    return np.asarray(loop_fn_interp)
         
