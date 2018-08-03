@@ -61,6 +61,34 @@ class SnailPromoterMs2Loops():
         self.loop_function = np.append(np.zeros(loadlength), loopchain)   # add in the start region at beginning of gene
         
 
+class tailUpMs2():
+    '''
+    MS2 Loop agglomeration along intron region for tail-up gene
+    transcription
+    '''
+    def __init__(self):
+        genelength = 10144    # in basepairs. Snail MS2 loads GFP loops from 5' end of gene
+        maxloops = 128        # max loops in MS2 chain
+        loadlength = 60      # how many bp it takes to start chain
+        looplength = 19      # how many bp generates one loop 
+        loopchain = np.zeros(genelength - loadlength)   # look at just the loop part of gene
+
+        counter = 0
+        loopnum = 0
+        linkbp = 3
+        for bp in range(len(loopchain)):
+            if (counter / looplength >= 1):
+                loopnum += 1
+                counter = 0
+                 
+                if loopnum > maxloops:    # When we reach the maximum loops in the chain, don't add any more.
+                    loopnum = maxloops
+
+                loopchain[bp:(bp + linkbp + looplength)] = loopnum
+            else:
+                counter += 1
+        self.loop_function = np.append(np.zeros(loadlength), loopchain)   # add in the start region at beginning of gene
+
 
     # Now interpolate loop function by polII position to cut down on computation time
 def loopInterpolate(loop_function, k_elong, tPol):
