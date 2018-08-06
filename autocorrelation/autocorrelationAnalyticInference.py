@@ -20,10 +20,11 @@ from astropy.table import Table
 
 # import analysis functions
 from autocorrelationDataProcessing import tracePackageAutocorrelation
+from loopFunction import loopInterpolate   # get interpolation function to calculate Pon
 
 class fitAutocorrelationFunction():
 
-    def __init__(self, tracePackageAutocorrelation):
+    def __init__(self, tracePackageAutocorrelation, tPol, k_elong):
         self.tracelist = tracePackageAutocorrelation.tracelist
         self.corrected_tracelist = tracePackageAutocorrelation.corrected_tracelist
         self.calibrated_tracelist = tracePackageAutocorrelation.calibrated_tracelist
@@ -33,15 +34,88 @@ class fitAutocorrelationFunction():
         self.avgflors = tracePackageAutocorrelation.avgflors
         self.loop_function = tracePackageAutocorrelation.loop_function
 
-
-# fit for pon in a SIMPLE way
+        # Assumed parameters
+        self.tPol = tPol
+        self.k_elong = k_elong
+        # interpolated loop function
+        self.interploops = loopInterpolate(self.loop_function, self.k_elong, self.tPol)
+    '''
+    Fitting for Pon, the probability that our promoter is ON during the trace time window.
+    This mini function takes in a loop function (by basepair along the gene) and interpolates
+    it to get the number of loops indexed by the discrete polII location on the gene. 
+    For example, a polII with loading time tPol=6sec and elongation rate k_elong=25bp/sec, the polII has an
+    effective footprint on the gene of 150 bp. Thus the gene index i is
+    len(gene) / (size of polII)
+    '''
     def fitPon(self):
-        loops = self.loop_function    # pull in loop function    
-        pon = np.mean(self.avgflors) / np.sum(loops) * 150
-        pon_std = np.std(self.avgflors) / len(self.avgflors)
+        loops = self.loop_function                     # pull in interpolated loop function    
+        sizePol = self.tPol * self.k_elong           # polII footprint on gene
+        pon = np.mean(self.avgflors) / np.sum(loops)
+        pon_std = np.std(self.avgflors / np.sum(loops)) 
 
-        return pon,pon_std
+        return pon
         # print('pon          = ', pon, '\npon variance = ', pon_var)
+
+
+    def tracePackageBootstrap(self):
+    
+        # let's get an idea of the spread of our data by using the bootstrap method
+        # create a routine that bootstrap fits a set of data arrays
+        
+        tracelist = np.asarray(self.calibrated_tracelist)          # convert to a numpy array to play with indices
+        n_traces = len(tracelist)                # number of traces in our dataset
+        n_trials = 100                      # how many times we wish to compute the bootstrap loop
+        trace_indx = np.arange(n_traces)      # the index range of the list of traces
+        auto_averages = []                    # list of averaged autocorrelation functions (should be n_trials long)
+
+
+        # sample randomly, with replacement, a new set of n_traces 10,000 times
+        for i in range(n_trials):
+
+            # from our list of traces, sample radomly the trace_index of these datum in the list
+            random_indx = np.random.choice(trace_indx, size=n_traces, replace=True)  
+            # then use this array of indices to create our random distribution of traces
+            sample_set = tracelist[random_indx]
+            autolist = []
+            # next compute the autocorrelation function from this set of traces        
+            for sample in sample_set:
+                
+                corrected_sample = sample - np.nanmean(sample)            
+                # check for weird zero traces and fill their autocorrelations with nans
+                colsum = np.sum(sample)    
+                if (colsum == 0):                                      # don't plot the zero signal traces
+                    auto_norm = np.ones(len(sample)) * np.nan         # set zero signal cells to nan to be ignored
+
+                else: 
+                    auto = np.correlate(corrected_sample, corrected_sample, 'full')
+                    #auto = autocorrelateSignal(corrected_trace)
+                    auto = auto[np.argmax(auto):]     # take half of the autocorrelation function        
+                    auto_norm = auto
+                autolist.append(auto_norm)
+                
+            # compute average autocorrelation, ignoring inactive cells
+            autoav = np.nanmean(np.asarray(autolist), axis=0)  
+            autoav = autoav / autoav[1]                        # normalize averaged autocorrelation
+            # append average to list
+            auto_averages.append(autoav[1:])
+
+
+            # compute weighted standard errors from bootstrap package
+
+        N = len(auto_averages[1]) # number of tau time delays in autocorrelation function
+        pts = np.arange(N)        # index of points        
+        std_dev_arr = np.nanstd(auto_averages, axis=0, ddof=0)
+        weightedstderr = std_dev_arr / ((N-pts)/(np.sqrt(N)*n_trials))
+        return weightedstderr
+
+
+
+        # Now let's take the 68% confidence intervals of the set of 10000 autocorrelation functions. This is the STANDARD ERROR
+        # on our dataset    
+        #upperlim,lowerlim = np.percentile(a=np.asarray(auto_averages), axis=0, q=[84,16])
+        #med = np.nanmean(auto_averages, axis=0)
+        #return med,(med - lowerlim)/weights,(upperlim-med)/weights    # returns distance between average and up,low limits
+
 
     """"
     Autocorrelation function analysis for Two-State Model using Despond et al's (2016)
@@ -75,26 +149,20 @@ class fitAutocorrelationFunction():
         stepsize = 6            # time between observations, seconds
         tPol=6;                 # polII loading time
         k_elong=25;             # Elongation rate
-        sizePol = tPol * k_elong     # Footprint, in basepairs, of polII
-        
         time = np.arange(len(t)) * stepsize
         
-        tracelength = len(t)        # calculate from trace inputs
         
         # get the loop function
-        loops = self.loop_function
+        loops = self.interploops
         
         # do the Pon fitting (once I've written the function)
         # pon,pon_upper,pon_lower = pon_fit()
         
         # FOR NOW:
         #p_on = fitPon(tracelist)
-        p_on,pon_std = self.fitPon()
+        p_on = self.fitPon()
         p_off = 1-p_on
-        
-        # compute normalization constant
-        avg_flors = self.avgflors
-        
+                
         # write analytic autocorrelation function according to Desponds et al:    
         # chartime is defined as k_on + k_off
         
@@ -111,11 +179,8 @@ class fitAutocorrelationFunction():
                     sm0 += p_on*p_off*(loops[i] * loops[j] * np.exp((delta-1)*np.abs(t - j + i)))
         
             c_arr.append(sm0)
-        #plt.plot(c_arr)
-            
-        connected_corr = np.asarray(c_arr)    # the two-state connected correlation function
-        #return connected_corr / np.max(connected_corr)
-    
+        
+        connected_corr = np.asarray(c_arr)    # the two-state connected correlation function   
         N = len(time)         # CONSTANT trace length
         # Add in the finite trace correction for the Ornstein-Uhlenbeck process    
         # perform the summations
@@ -137,12 +202,11 @@ class fitAutocorrelationFunction():
             sm3 = 0
             for m in range(1,N):
                 sm3 += connected_corr[m] * (np.min(np.asarray([m+r, N])) - np.max(np.asarray([r, m])))
-            # full correction
+            
             corrected_full.append((connected_corr[r] + 
                                         (1/N) *((1/N) - (2./(N-r))) * (N*Co + sm1)) + ((2/(N*(N-r))) * (r*Co + sm2 + sm3)))
     
         normed = np.asarray(corrected_full)
-        
         return (normed / normed[1])
 
 
@@ -153,14 +217,18 @@ class fitAutocorrelationFunction():
         can't fit the fuction
         """
         t = np.arange(len(self.autoav))
-        popt,pcov = curve_fit(self.autocorrAnalytic, t[0:], self.autoav[0:], sigma=self.autostd[0:])
+
+        weightedstd = self.tracePackageBootstrap()
+
+        popt,pcov = curve_fit(self.autocorrAnalytic, t[1:], 
+                        self.autoav[1:])#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
 
         ratesum = popt[0]
-
+        p_on = self.fitPon()
         kon_fit = ratesum*p_on
         koff_fit = ratesum - kon_fit
         chrtime = 1 / ratesum
-
+        print("Pon                       = ", p_on)
         print("k_on + k_off              = ", ratesum, 's^-1')
         print("k_on                      = ", kon_fit)
         print("k_off                     = ", koff_fit)
@@ -168,4 +236,4 @@ class fitAutocorrelationFunction():
         print("characteristic timescale  = ", chrtime, 'time units')
         print("covariance                = ", pcov[0][0])
 
-        return kon_fit,koff_fit,chrtime,pcov[0][0]
+        return kon_fit,koff_fit,chrtime,p_on,pcov[0][0],weightedstd
