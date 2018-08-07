@@ -24,7 +24,7 @@ from loopFunction import loopInterpolate   # get interpolation function to calcu
 
 class fitAutocorrelationFunction():
 
-    def __init__(self, tracePackageAutocorrelation, tPol, k_elong):
+    def __init__(self, tracePackageAutocorrelation, tPol, k_elong, stepsize):
         self.tracelist = tracePackageAutocorrelation.tracelist
         self.corrected_tracelist = tracePackageAutocorrelation.corrected_tracelist
         self.calibrated_tracelist = tracePackageAutocorrelation.calibrated_tracelist
@@ -35,6 +35,7 @@ class fitAutocorrelationFunction():
         self.loop_function = tracePackageAutocorrelation.loop_function
 
         # Assumed parameters
+        self.stepsize = stepsize
         self.tPol = tPol
         self.k_elong = k_elong
         # interpolated loop function
@@ -143,54 +144,37 @@ class fitAutocorrelationFunction():
         """
 
 
-    def autocorrAnalytic(self, t, chartime):  # take in parameters and t (signal data array index in seconds)
+    def autocorrAnalytic(self, t, ratesum):  # take in parameters and t (signal data array index in seconds)
         # define all needed parameters #
-        despondsfile = 'standalone/therightL.mat'
-        stepsize = 6            # time between observations, seconds
-        tPol=6;                 # polII loading time
-        k_elong=25;             # Elongation rate
+        stepsize = self.stepsize            # time between observations, seconds
         time = np.arange(len(t)) * stepsize
-        
-        
         # get the loop function
         loops = self.interploops
-        
-        # do the Pon fitting (once I've written the function)
-        # pon,pon_upper,pon_lower = pon_fit()
-        
-        # FOR NOW:
-        #p_on = fitPon(tracelist)
+        # compute Pon
         p_on = self.fitPon()
         p_off = 1-p_on
                 
-        # write analytic autocorrelation function according to Desponds et al:    
-        # chartime is defined as k_on + k_off
-        
-        delta = 1 - chartime    
+        # write analytic autocorrelation function according to Desponds et al (2016):    
+        # ratesum is defined as k_on + k_off
+        delta = 1 - ratesum    
 
         # write a for loop to do the double sums to compute connected correlation:
-        
         c_arr = []
-        
         for t in range(len(time)):
             sm0 = 0
             for i in range(len(loops)):
                 for j in range(len(loops)):
                     sm0 += p_on*p_off*(loops[i] * loops[j] * np.exp((delta-1)*np.abs(t - j + i)))
-        
             c_arr.append(sm0)
-        
         connected_corr = np.asarray(c_arr)    # the two-state connected correlation function   
         N = len(time)         # CONSTANT trace length
+
         # Add in the finite trace correction for the Ornstein-Uhlenbeck process    
         # perform the summations
-        # initialize corrected lists
         corrected_full = []
-        Co = connected_corr[0]    # initial condition of connected correlation function
-            
+        Co = connected_corr[0]                # initial condition of connected correlation function      
         # Now we're going to correct EVERY data point in the connected autocorrelation function
         for r in range(len(connected_corr)):
-        
             sm1 = 0    
             for k in range(1,N):
                 sm1 += 2*(N - k)*connected_corr[k]
@@ -207,33 +191,38 @@ class fitAutocorrelationFunction():
                                         (1/N) *((1/N) - (2./(N-r))) * (N*Co + sm1)) + ((2/(N*(N-r))) * (r*Co + sm2 + sm3)))
     
         normed = np.asarray(corrected_full)
-        return (normed / normed[1])
+        return (normed / normed[1])             # normalize at second data point
 
 
-    def leastSquaresAutoFit(self):
+    def leastSquaresAutoFit(self, printvals, upperbound, lowerbound):
         """
         When fitting the autocorrelation function within the standard deviation error range, we need to exclude the first point
         since the standard error here is zero (all autocorr functions normalized there). Otherwise, we get a divide by zero and 
         can't fit the fuction
         """
+        if upperbound != None:
+            bounds = ([lowerbound], [upperbound])
+        else:
+            bounds = None
         t = np.arange(len(self.autoav))
-
         weightedstd = self.tracePackageBootstrap()
-
-        popt,pcov = curve_fit(self.autocorrAnalytic, t[1:], 
-                        self.autoav[1:])#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
+        print(bounds)
+        popt,pcov = curve_fit(f=self.autocorrAnalytic, xdata=t[1:], 
+                        ydata=self.autoav[1:], bounds=bounds)#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
 
         ratesum = popt[0]
         p_on = self.fitPon()
         kon_fit = ratesum*p_on
         koff_fit = ratesum - kon_fit
         chrtime = 1 / ratesum
-        print("Pon                       = ", p_on)
-        print("k_on + k_off              = ", ratesum, 's^-1')
-        print("k_on                      = ", kon_fit)
-        print("k_off                     = ", koff_fit)
-        print("t_polII_block             =  6 seconds")
-        print("characteristic timescale  = ", chrtime, 'time units')
-        print("covariance                = ", pcov[0][0])
 
-        return kon_fit,koff_fit,chrtime,p_on,pcov[0][0],weightedstd
+        if printvals == True:
+            print("Pon                       = ", p_on)
+            print("k_on + k_off              = ", ratesum, 's^-1')
+            print("k_on                      = ", kon_fit)
+            print("k_off                     = ", koff_fit)
+            print("t_polII_block             =  6 seconds")
+            print("characteristic timescale  = ", chrtime, 'time units')
+            print("covariance                = ", pcov[0][0])
+
+        return kon_fit,koff_fit,chrtime,p_on,popt,pcov,weightedstd
