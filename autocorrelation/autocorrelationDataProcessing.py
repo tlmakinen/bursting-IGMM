@@ -78,37 +78,35 @@ class tracePackageAutocorrelation:
                 #auto = autocorrelateSignal(corrected_trace)
                 auto = auto[np.argmax(auto):]     # take half of the autocorrelation function
 
-                # finally, normalize        
-                #auto_norm = auto / auto[0]
-                for r in range(len(auto)):
-                    norm = []
-                    sm2 = 0.
-                    for k in range(1,len(corrected_trace)):
-                        sm2 += (corrected_trace[k]**2)
-                    norm.append(((len(corrected_trace)-float(r)) / len(corrected_trace)) * sm2)
+                # normalize each autocorrelation function
+                auto_norm = auto / (auto[1])
 
-                auto_norm = auto / (np.asarray(norm))
-
-            autolist.append(auto_norm) #/ auto_norm[1])   # normalize by second data point
+            autolist.append(auto_norm)
             calibrated_tracelist.append(calibrated_trace)
             corrected_tracelist.append(corrected_trace)
             
         # compute average autocorrelation, ignoring inactive cells
         autoav = np.nanmean(np.asarray(autolist), axis=0)  
         autoav = autoav / autoav[1]                        # normalize averaged autocorrelation
-        # compute standard deviation, weighting error by number of points correlated
-        autostd = np.nanstd(autoav, axis=0, 
-                            ddof=np.arange(len(autoav)))  
+
+        # compute standard error according to Desponds
+        autovar = np.nanvar(np.asarray(autolist), axis=0)
+        #std_error = autovar / (len(autolist) * (len(calibrated_trace) - (np.arange(len(autoav)))))
+        std_error = np.nanstd(np.asarray(autolist), axis=0)
+
+        # weighted standard error of average connected autocorr function
+        err = std_error / ((len(calibrated_trace) - np.arange(len(autoav))) / len(calibrated_trace))
+
         # compute average fluorescence for each raw simulated trace
         avg_flors = []
         for i in calibrated_tracelist:
-            avg_flors.append(np.mean(i))            # stack in an array
+            avg_flors.append(np.mean(i))                   # stack in an array
 
         self.loop_function = loop_function                 # for fitting reference
         self.avgflors = np.asarray(avg_flors)              # return array of average fluorescence
         self.autoav = autoav[1:]                           # ignore the unfitted first point
-        self.autostd = autostd[1:]   
+        self.auto_err = err[1:]   
         self.calibrated_tracelist = calibrated_tracelist   # intensity-calibrated traces
         self.corrected_tracelist  = corrected_tracelist    # mean-subtracted traces
-
+        self.autolist = autolist
 

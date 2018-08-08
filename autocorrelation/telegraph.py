@@ -19,15 +19,15 @@ class exponential:
 
         promoter_arr = np.zeros((duration))
             
-        signal = 0      # start in the off state
+        state = 0      # start in the off state
         t0 = 0          # start at t0
         t1 = 0          # step size to be chosen in loop
         
                                             
         for i in range(len(promoter_arr)):
             t1 = int(on_off[i])                         # find the time until which the signal changes state
-            promoter_arr[t0:(t0 + t1)] = signal         # for the given duration of the ith state, fill the value with either "ON" or "OFF" values
-            signal = 1 - signal                         # change the signal by flipping the switch to either 1 or 0.
+            promoter_arr[t0:(t0 + t1)] = state         # for the given duration of the ith state, fill the value with either "ON" or "OFF" values
+            state = 1 - state                         # change the signal by flipping the switch to either 1 or 0.
             t0 = t0 + t1                                # move on in time
             
         self.signal = promoter_arr                      # returns telegraph signal of promoter indexed by stepsize (discrete steps).
