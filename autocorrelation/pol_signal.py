@@ -72,5 +72,16 @@ class pol_signal:
             #molecule_signal[s] = np.sum(keep*polII_arr)    # sum up the number of GFP molecules from the polII list
             molecule_signal[s] = np.sum(polII_arr)
                         
+        # interpolate signal according to sampling time
+        interpsignal = []
+        counter = 0
+        for i in molecule_signal:
+            if (counter / self.stepsize) >= 1:
+                interpsignal.append(i)
+                counter=0     # reset counter 
+            else:
+                counter += 1
+
+
         self.signal = molecule_signal                      # signal in terms of number of loops
-        
+        self.interpsignal = np.asarray(interpsignal)

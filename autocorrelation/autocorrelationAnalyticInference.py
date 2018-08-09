@@ -62,8 +62,8 @@ class autocorrelationAnalytic:
 
     def autocorrAnalyticFunction(self, t, ratesum):  # take in parameters and t (signal data array index in seconds)
         # define all needed parameters #
-        stepsize = self.stepsize            # time between observations, seconds
-        time = np.arange(len(t)) * stepsize
+        stepsize = self.stepsize                # time between observations, seconds
+        time = np.arange(len(t)) #* stepsize  # so that we're in units of seconds
         # get the loop function
         loops = self.interploops
         # take in pon as aspect of function
@@ -121,7 +121,7 @@ class fitAutocorrelationFunction():
         self.calibrated_tracelist = tracePackageAutocorrelation.calibrated_tracelist
 
         self.autoav = tracePackageAutocorrelation.autoav
-        self.autostd = tracePackageAutocorrelation.auto_err
+        self.auto_err = tracePackageAutocorrelation.auto_err
         self.avgflors = tracePackageAutocorrelation.avgflors
         self.loop_function = tracePackageAutocorrelation.loop_function
 
@@ -210,17 +210,27 @@ class fitAutocorrelationFunction():
         #med = np.nanmean(auto_averages, axis=0)
         #return med,(med - lowerlim)/weights,(upperlim-med)/weights    # returns distance between average and up,low limits
 
-    def leastSquaresAutoFit(self, printvals, upperbound, lowerbound):
+    def leastSquaresAutoFit(self, upperbound, lowerbound, printvals=True, fitpon=True, pon=0.3):
         """
-        When fitting the autocorrelation function within the standard deviation error range, we need to exclude the first point
-        since the standard error here is zero (all autocorr functions normalized there). Otherwise, we get a divide by zero and 
-        can't fit the fuction.
+        Least Squares fitting using scipy.optimize module. 
+        Inputs:
+        Upper and Lower bounds denote the range in which we perform the inference for the ratesum = kon + koff
+        
+        printvals: if True, we print the inferred values and generate a plot of the fitted function on top of
+        the data, with standard error bars shown
+
+        fitpon: if chosen to be False, don't fit pon from trace package
+
+        pon: optional, for testing inference method
 
         To access the autocorrelation function, we call in the class defined above
         """
-        
         # first, fit for pon and get error
-        pon,ponlow,ponhi,ponstd = self.fitPon()
+        if fitpon == True:
+            pon,ponlow,ponhi,ponstd = self.fitPon()
+        
+        else:
+            pon = pon
         
         # then create the analytic model class object
         autocorrelationAnalyticPack = autocorrelationAnalytic(self.tPol, self.k_elong, 
@@ -231,46 +241,64 @@ class fitAutocorrelationFunction():
         else:
             bounds = None
 
-        t = np.arange(len(self.autoav))
-        #weightedstd = self.tracePackageBootstrap()
-        print(bounds)
-
+        t = np.arange(len(self.autoav)) #* self.stepsize
         self.autocorrFunc = autocorrelationAnalyticPack.autocorrAnalyticFunction
-
-        popt,pcov = curve_fit(f=autocorrelationAnalyticPack.autocorrAnalyticFunction, xdata=t[1:], 
+        popt,pcov = curve_fit(f=self.autocorrFunc, xdata=t[1:], 
                         ydata=self.autoav[1:], bounds=bounds)#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
 
-
         ratesum = popt[0]
-        
         kon_fit = ratesum*pon
         koff_fit = ratesum - kon_fit
 
         # get error range on the decoupling of kon, koff
         # lower bound:
-        kon_low = ratesum*ponlow
-        koff_low = ratesum - kon_low
+        #kon_low = ratesum*ponlow
+        #koff_low = ratesum - kon_low
         # upper bound:
-        kon_up = ratesum * ponhi
-        koff_up = ratesum - kon_up
+        #kon_up = ratesum * ponhi
+        #koff_up = ratesum - kon_up
 
         # compute errors in kon, koff
-        kon_up_err = np.abs(kon_up - kon_fit)
-        kon_low_err = np.abs(kon_fit - kon_low)
+        #kon_up_err = np.abs(kon_up - kon_fit)
+        #kon_low_err = np.abs(kon_fit - kon_low)
 
-        koff_up_err = np.abs(koff_fit - koff_up)
-        koff_low_err = np.abs(koff_fit - koff_low)
+        #koff_up_err = np.abs(koff_fit - koff_up)
+        #koff_low_err = np.abs(koff_fit - koff_low)
 
         chrtime = 1 / ratesum
 
         if printvals == True:
-            print("Pon                       = ", pon, '+/-', ponstd)
+            print("Pon                       = ", pon)#, '+/-'), ponstd)
             print("k_on + k_off              = ", ratesum, 's^-1')
-            print("k_on                      = ", kon_fit, '+', kon_up_err, '-', kon_low_err)
-            print("k_off                     = ", koff_fit, '+/-', koff_up_err)
+            print("k_on                      = ", kon_fit)#, '+', kon_up_err, '-', kon_low_err)
+            print("k_off                     = ", koff_fit)#, '+/-', koff_up_err)
             print("t_polII_block             =  6 seconds")
-            print("characteristic timescale  = ", chrtime, 'time units')
+            print("characteristic timescale  = ", chrtime, 'seconds')
             print("covariance                = ", pcov[0][0])
 
-        return kon_fit,koff_fit,chrtime,pon,popt,pcov#,weightedstd
+            # incorporate a plot of the fitted autocorrelation with data
+            fig,ax = plt.subplots(1, 1, figsize=(10,5), sharex=True)
+            ax.plot(t, self.autocorrFunc(t,ratesum), label='analytic model best fit')
+            # show the mean of our original dataset in red
+            ax.scatter(t[::2],self.autoav[::2], marker='.', 
+                            color='r', label = 'Mean Simulated Data Autocorrelation')
+            
+            ax.errorbar(x=t, y=self.autoav, 
+                        yerr=(self.auto_err*1, self.auto_err*1), 
+                                ecolor='b', alpha=0.2, label = r'1-$\sigma$ weighted standard error from mean')  
+
+            ax.plot(chrtime, 0, marker='+', zorder=10, linestyle='none',
+                                            color='#de2d26', label='Characteristic Time Point')
+
+            plt.legend(loc="best")
+            ax.set_ylim(-1, 1.3)
+            ax.set_xlabel(r'Wait time $\tau$ (seconds)', fontsize=15)
+            ax.set_ylabel(r'autocorrelation M($\tau$)', fontsize=15)
+            # add in a summary of our fitted parameters
+            plt.text(x=50, y=-.8, s='Analytic fitted parameters \n\n$k_{on}$ = ' 
+                                            + str(kon_fit) + '\n$k_{off}$ = ' + str(koff_fit))
+            plt.show()
+
+
+        return kon_fit,koff_fit,chrtime,pon,popt,pcov
 

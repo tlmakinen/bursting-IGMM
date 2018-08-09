@@ -6,8 +6,12 @@ import numpy as np
 
 class DespondsMs2Loops():
 
-    def __init__(self, despondsfile, tPol, k_elong):
+    def __init__(self):
         # load in Desponds et al's loop function
+        despondsfile = 'standalone/therightL.mat'
+        tPol = 6        # seconds
+        k_elong = 25    # bp /sec
+
         sizePol = tPol * k_elong
         loopFn = spio.loadmat(despondsfile)
         
@@ -25,7 +29,7 @@ class DespondsMs2Loops():
             #Li_fn[i] = np.sum(ms[(sizePol*(i)+1):-1]) / sizePol
             
         self.loopsByPolPosition = np.asarray(Li_fn)
-        self.loopsByBp = ms
+        self.loop_function = ms
 
 class SnailPromoterMs2Loops():
     '''
