@@ -62,8 +62,7 @@ class autocorrelationAnalytic:
 
     def autocorrAnalyticFunction(self, t, ratesum):  # take in parameters and t (signal data array index in seconds)
         # define all needed parameters #
-        stepsize = self.stepsize                # time between observations, seconds
-        time = np.arange(len(t)) #* stepsize  # so that we're in units of seconds
+        time = t                                # our time array is what we pass to the function (usually in seconds)
         # get the loop function
         loops = self.interploops
         # take in pon as aspect of function
@@ -80,7 +79,7 @@ class autocorrelationAnalytic:
             sm0 = 0
             for i in range(len(loops)):
                 for j in range(len(loops)):
-                    sm0 += p_on*p_off*(loops[i] * loops[j] * np.exp((delta-1)*np.abs(t - j + i)))
+                    sm0 += p_on*p_off*(loops[i] * loops[j] * np.exp((delta-1)*np.abs(time[t] - j + i)))
             c_arr.append(sm0)
         connected_corr = np.asarray(c_arr)    # the two-state connected correlation function   
         N = len(time)         # CONSTANT trace length
@@ -241,7 +240,7 @@ class fitAutocorrelationFunction():
         else:
             bounds = None
 
-        t = np.arange(len(self.autoav)) #* self.stepsize
+        t = np.arange(len(self.autoav)) * self.stepsize    # fit function in units of seconds
         self.autocorrFunc = autocorrelationAnalyticPack.autocorrAnalyticFunction
         popt,pcov = curve_fit(f=self.autocorrFunc, xdata=t[1:], 
                         ydata=self.autoav[1:], bounds=bounds)#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
