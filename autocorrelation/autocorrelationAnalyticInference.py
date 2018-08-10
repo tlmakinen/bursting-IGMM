@@ -13,7 +13,6 @@ Function works as follows:
 
 import numpy as np
 import matplotlib.pyplot as plt
-import gfp_signal
 from telegraph import exponential
 from scipy.optimize import curve_fit
 from astropy.table import Table
@@ -228,9 +227,7 @@ class fitAutocorrelationFunction():
         if fitpon == True:
             pon,ponlow,ponhi,ponstd = self.fitPon()
         
-        else:
-            pon = pon
-        
+                
         # then create the analytic model class object
         autocorrelationAnalyticPack = autocorrelationAnalytic(self.tPol, self.k_elong, 
                                                     self.stepsize, pon, self.interploops)   # our package with mean pon
@@ -243,7 +240,7 @@ class fitAutocorrelationFunction():
         t = np.arange(len(self.autoav)) * self.stepsize    # fit function in units of seconds
         self.autocorrFunc = autocorrelationAnalyticPack.autocorrAnalyticFunction
         popt,pcov = curve_fit(f=self.autocorrFunc, xdata=t[1:], 
-                        ydata=self.autoav[1:], bounds=bounds)#, sigma=weightedstd[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
+                        ydata=self.autoav[1:], bounds=bounds)#, sigma=self.auto_err[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
 
         ratesum = popt[0]
         kon_fit = ratesum*pon
