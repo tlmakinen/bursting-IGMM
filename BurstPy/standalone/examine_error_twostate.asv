@@ -1,0 +1,94 @@
+T_range=[240 600 240 600 2400];         % Trace length in seconds
+ncell_range=[50 200 200 50 1000];       % Number of cells
+pon_range=0.1;                          % Probability of Pon
+isrounded=0;
+mkdir('Results');
+
+for cnt=1:numel(T_range)
+    T=T_range(cnt);
+    ncell=ncell_range(cnt);
+        if ~exist(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'file')
+            inferencetwostate(T,ncell,pon_range,isrounded);
+        end
+end
+%% Check the results
+% Plot the normal condition
+pon_range=0.1;
+T=240;
+ncell=50;
+load(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'sumk_range','sumkhat','itrmax');
+figure;
+h1=plot(sort(sumk_range),sort(sumk_range),'k--');hold on;
+for i=1:numel(sumkhat)
+    sumkhat{i}=sumkhat{i}(sumkhat{i}<0.15);
+end
+    sumkmean=cellfun(@mean,sumkhat);
+    sumkerr=sqrt(cellfun(@var,sumkhat));
+    %h2=errorbar(sumk_range+0.001,sumkmean,sumkerr);hold on;
+    h2=shadedErrorBar(sumk_range+0.001,sumkmean,sumkerr,'b',0.1);hold on;
+    set(h2.mainLine,'LineWidth',2);
+% Plot the ideal condition
+T=600;
+ncell=200;
+load(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'sumk_range','sumkhat','itrmax');
+for i=1:numel(sumkhat)
+    sumkhat{i}=sumkhat{i}(sumkhat{i}<0.15);
+end
+    sumkmean=cellfun(@mean,sumkhat);
+    sumkerr=sqrt(cellfun(@var,sumkhat));
+    %h3=errorbar(sumk_range,sumkmean,sumkerr);hold on;
+    h3=shadedErrorBar(sumk_range+0.001,sumkmean,sumkerr,'r',0.1);hold on;
+    set(h3.mainLine,'LineWidth',2);
+xlabel('k_{on} + k_{off} (1/s)');
+ylabel('Inferred k_{on} + k_{off} (1/s)');
+axis([0 0.15 0 0.17]);
+% Plot the ideal condition
+T=240;
+ncell=200;
+load(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'sumk_range','sumkhat','itrmax');
+for i=1:numel(sumkhat)
+    sumkhat{i}=sumkhat{i}(sumkhat{i}<0.15);
+end
+    sumkmean=cellfun(@mean,sumkhat);
+    sumkerr=0*sqrt(cellfun(@var,sumkhat));
+    %h3=errorbar(sumk_range,sumkmean,sumkerr);hold on;
+    h4=shadedErrorBar(sumk_range+0.001,sumkmean,sumkerr,'g',1);hold on;
+    set(h4.mainLine,'LineWidth',2,'LineStyle','--');
+xlabel('k_{on} + k_{off} (1/s)');
+ylabel('Inferred k_{on} + k_{off} (1/s)');
+axis([0 0.15 0 0.17]);
+% Plot the ideal condition
+T=600;
+ncell=50;
+load(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'sumk_range','sumkhat','itrmax');
+for i=1:numel(sumkhat)
+    sumkhat{i}=sumkhat{i}(sumkhat{i}<0.15);
+end
+    sumkmean=cellfun(@mean,sumkhat);
+    sumkerr=0*sqrt(cellfun(@var,sumkhat));
+    
+    h5=shadedErrorBar(sumk_range+0.001,sumkmean,sumkerr,'k',1);hold on;
+    set(h5.mainLine,'LineWidth',2,'LineStyle','--');
+xlabel('k_{on} + k_{off} (1/s)');
+ylabel('Inferred k_{on} + k_{off} (1/s)');
+axis([0 0.15 0 0.17]);
+h=legend([h2.mainLine h3.mainLine h4.mainLine h5.mainLine h1],'T=240s, N=50','T=600s, N=200','T=240s, N=200','T=600s, N=50','k_{on} + k_{off}');
+set(h,'Location','NorthWest','box','off');
+box on;
+% % Plot most ideallll
+% T=2400;
+% ncell=1000;
+% load(['Results/twostate_' num2str(pon_range) '_T' num2str(T) '_ncell' num2str(ncell) '.mat'],'sumk_range','sumkhat','itrmax');
+% for i=1:numel(sumkhat)
+%     sumkhat{i}=sumkhat{i}(sumkhat{i}<0.15);
+% end
+%     sumkmean=cellfun(@mean,sumkhat);
+%     sumkerr=0*sqrt(cellfun(@var,sumkhat));
+%     
+%     h5=shadedErrorBar(sumk_range,sumkmean,sumkerr,'--k',1);hold on;
+%     set(h5.mainLine,'LineWidth',2,'LineStyle','--');
+% xlabel('k_{on} + k_{off} (1/s)');
+% ylabel('Inferred k_{on} + k_{off} (1/s)');
+% axis([0 0.15 0 0.17]);
+% h=legend([h2.mainLine h3.mainLine h4.mainLine h5.mainLine h1],'T=240s, N=50','T=600s, N=200','T=240s, N=200','T=600s, N=50','k_{on} + k_{off}');
+% set(h,'Location','NorthWest');
