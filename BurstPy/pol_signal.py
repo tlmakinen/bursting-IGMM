@@ -74,13 +74,13 @@ class pol_signal:
                         
         # interpolate signal according to sampling time
         interpsignal = []
-        counter = 0
+        ctr = 0
         for i in molecule_signal:
-            if (counter / self.stepsize) >= 1:
+            if (ctr / self.stepsize) >= 1:
                 interpsignal.append(i)
-                counter=0     # reset counter 
+                ctr=0     # reset counter 
             else:
-                counter += 1
+                ctr += 1
 
 
         self.signal = molecule_signal                      # signal in terms of number of loops

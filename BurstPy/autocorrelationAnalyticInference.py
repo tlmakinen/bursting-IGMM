@@ -274,10 +274,10 @@ class fitAutocorrelationFunction():
 
             # incorporate a plot of the fitted autocorrelation with data
             fig,ax = plt.subplots(1, 1, figsize=(10,5), sharex=True)
-            ax.plot(t, self.autocorrFunc(t,ratesum), label='analytic model best fit')
+            ax.plot(t, self.autocorrFunc(t,ratesum), label='Analytic Model Best Fit')
             # show the mean of our original dataset in red
             ax.scatter(t[::2],self.autoav[::2], marker='.', 
-                            color='r', label = 'Mean Simulated Data Autocorrelation')
+                            color='r', label = 'Mean Data Autocorrelation')
             
             ax.errorbar(x=t, y=self.autoav, 
                         yerr=(self.auto_err*1, self.auto_err*1), 
@@ -288,8 +288,8 @@ class fitAutocorrelationFunction():
 
             plt.legend(loc="best")
             ax.set_ylim(-1, 1.3)
-            ax.set_xlabel(r'Wait time $\tau$ (seconds)', fontsize=15)
-            ax.set_ylabel(r'autocorrelation M($\tau$)', fontsize=15)
+            ax.set_xlabel(r'Wait Time $\tau$ (seconds)', fontsize=15)
+            ax.set_ylabel(r'Autocorrelation M($\tau$)', fontsize=15)
             # add in a summary of our fitted parameters
             plt.text(x=50, y=-.8, s='Analytic fitted parameters \n\n$k_{on}$ = ' 
                                             + str(kon_fit) + '\n$k_{off}$ = ' + str(koff_fit))
