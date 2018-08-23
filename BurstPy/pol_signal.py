@@ -25,13 +25,12 @@ class pol_signal:
 
     def __init__(self, telegraph, k_elong, tPol, loop_function, stepsize):
 
-              
-        self.telegraph = np.array(telegraph)           # promoter state signal in SECONDS
-        self.k_elong = k_elong               # polII elongation rate; default is 25 bp/s
-        self.tPol = tPol                     # polII loading time in SECONDS
-                                             # default PolII loading time is 6s for desponds,3 for Lagha
-        self.loop_function = np.asarray(loop_function)   # known loop agglomeration pattern for MS2 system
-        self.stepsize = stepsize             # observation time
+        self.stepsize = stepsize                       # time, in seconds, between observations     
+        self.telegraph = np.array(telegraph)           # promoter state signal by observation steps
+        self.k_elong = k_elong * stepsize              # polII elongation rate in observation steps; (default is 25 (bp/s) * (observation/s) )
+        self.tPol = tPol / stepsize                    # polII loading time in observation steps
+        self.loop_function = np.asarray(loop_function) # known loop agglomeration pattern for MS2 system
+       
 
         # now let's load in the stepwise MS2 loop agglomeration. Desponds et al
         # calculated this and created a nice little function of MS2 loops by basepair
@@ -45,10 +44,10 @@ class pol_signal:
         counter = 0      # keep track of how many time steps we've taken since we added the last polII molecule
         
         
-        for s in range(len(telegraph)):                    # iterate every second            
+        for s in range(len(telegraph)):                    # iterate every observation timestep            
             if telegraph[s] == 1:                          # When the telegraph signal is ON, start a new pol II molecule according to the rate pol_per_step
                 counter += 1
-                if (counter/tPol) >= 1:                    # if we passed the start point of a new polII, add a new pol II molecule
+                if (counter/self.tPol) >= 1:                    # if we passed the start point of a new polII, add a new pol II molecule
                     polII_arr = np.append(polII_arr, 0)
                     pol_times = np.append(pol_times, 0)    # add each polII's coordinate to array
                     counter = 0                            # restart counter
@@ -57,7 +56,7 @@ class pol_signal:
             #polII_arr = [j+1 for j in polII_arr]          # add a new GFP loop to each polII molecule in the loop array according to GFP loop rate
             
             pol_times = [j+1 for j in pol_times]                     # move each polII along in time
-            pol_positions = [int(j * k_elong) for j in pol_times]    # update each polII molecule's position, in bp using k_elong        
+            pol_positions = [int(j * self.k_elong) for j in pol_times]    # update each polII molecule's position, in bp using k_elong        
             
             for j in range(len(pol_positions)):
                 if pol_positions[j] > (len(gene)-1):
@@ -73,15 +72,15 @@ class pol_signal:
             molecule_signal[s] = np.sum(polII_arr)
                         
         # interpolate signal according to sampling time
-        interpsignal = []
-        ctr = 0
-        for i in molecule_signal:
-            if (ctr / self.stepsize) >= 1:
-                interpsignal.append(i)
-                ctr=0     # reset counter 
-            else:
-                ctr += 1
+        #interpsignal = []
+        #ctr = 0
+       # for i in molecule_signal:
+          #  if (ctr / self.stepsize) >= 1:
+           #     interpsignal.append(i)
+           #     ctr=0     # reset counter 
+          #  else:
+          #      ctr += 1
 
 
         self.signal = molecule_signal                      # signal in terms of number of loops
-        self.interpsignal = np.asarray(interpsignal)
+        self.interpsignal = np.asarray(molecule_signal)

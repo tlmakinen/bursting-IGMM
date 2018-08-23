@@ -50,7 +50,7 @@ class tracePackageSimulation():
         trace_by_second = []
 
         for i in range(self.num_traces):
-            tel = exponential(k_on, k_off, duration)  # create a new signal every time      
+            tel = exponential(k_on, k_off, duration, stepsize)  # create a new signal every time      
             pol = pol_signal.pol_signal(telegraph=tel.signal, k_elong=self.k_elong, 
                                         loop_function=self.loop_function, tPol=tPol, stepsize=stepsize)
             trace = np.asarray(pol.interpsignal) 
