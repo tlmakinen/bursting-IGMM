@@ -141,7 +141,7 @@
     \def\gt{>}
     \def\lt{<}
     % Document parameters
-    \title{BurstPy v1.1 Walkthrough}
+    \title{BurstPy-v1.2-Walkthrough}
     
     
     
@@ -329,8 +329,8 @@ The equation that describes this process is:
 
 \begin{figure}
 \centering
-\includegraphics{attachment:image.png}
-\caption{image.png}
+\includegraphics{tutorial/auto-eq.PNG}
+\caption{auto-eq.PNG}
 \end{figure}
 
 where \(\mu\) is the mean of the signal, and \(\sigma^2\) is the
@@ -338,19 +338,219 @@ variance. A good illustration (courtesy of Wikipedia):
 
 \begin{figure}
 \centering
-\includegraphics{attachment:Comparison_convolution_correlation.svg.png}
-\caption{Comparison\_convolution\_correlation.svg.png}
+\includegraphics{tutorial/Comparison_convolution_correlation.png}
+\caption{Comparison\_convolution\_correlation.png}
 \end{figure}
 
-Following some mathematical derivation (which I might include later for
-a Poisson process), we find that the autocorrelation function takes the
-form of an exponential decay curve, dependent solely on the time
-\emph{delay} between comparison points in the signal \(X(t)\).
+Following some mathematical derivation (below), we find that the
+autocorrelation function takes the form of an exponential decay curve,
+dependent solely on the time \emph{delay} between comparison points in
+the signal \(X(t)\).
 
 The characteristic decay time, \(\tau_{char}\), can be linked to the
 \emph{underlying random distribution} that tells \(X(t)\) how long to
 stay "ON" or "OFF". In the case of Poisson-distributed wait durations,
 \(\tau_{char}\) is the mean of the distribution.
+
+    \subsection{Case Study: One-State Poisson Random
+Promoter}\label{case-study-one-state-poisson-random-promoter}
+
+\begin{figure}
+\centering
+\includegraphics{attachment:poisson-wait-time.png}
+\caption{poisson-wait-time.png}
+\end{figure}
+
+When building our models of transcription, we assume that the trigger of
+polymerase activity is a promoter state. This promoter state acts like a
+switch: either the gene is "ON" or "OFF"-\/-e.g. our \(X(t)\) above.
+Let's assume now that the promoter switches between 1 and -1 ("ON" and
+"OFF") randomly, drawing each time between switches from a \emph{Poisson
+distribution}. Poisson distributions are used to describe single,
+uncorrelated events-\/-in this case, flipping the switch.
+
+\[P(N(t) = n) = \frac{(\lambda t)^{n}e^{-\lambda t}}{n!} \]
+
+Where \(\lambda\) is the mean of the distribution and \(N(t)\) is the
+number of switches from ON to OFF. From here, the probability that
+\(N(t)\) is even (\(X(t)=\) ON) at a given t is:
+
+\[P((X(t) = 1 = ON)) = e^{-\lambda t}[1 + \frac{(\lambda t)^2}{2!} + \frac{(\lambda t)^4}{4!} + ...] \approx e^{-\lambda t}cosh(\lambda t)\]
+
+Similarly, the probability that the switch lands in an OFF (N(t) is odd)
+state is given as:
+
+\[P((X(t) = -1 = OFF)) = e^{-\lambda t}[\lambda t + \frac{(\lambda t)^3}{3!} + \frac{(\lambda t)^5}{5!} + ...] \approx e^{-\lambda t}sinh(\lambda t)\]
+
+    The discrete autocorrelation \(R(\tau)\) at lag \(\tau\) is:
+
+\[ R_{yy}(\tau) = \sum_{n\in [-1, 1]}^{} {X(t)X(t+\tau)}\]
+
+Where \(n\) can take on a value of \$\pm\$1. For a random process
+governed by a probability distribution, the autocorrelation takes the
+form:
+
+\[ R_{yy}(\tau) = \sum_{j=0}^{1} {}\sum_{k=0}^{1} {x_k x_j P[X(t)=x_k]P[X(t+\tau) = x_j\mid X(t) = x_k]} \]
+
+    The way this expression reads is that we compare the signal \(X(t)\) to
+itself a short \(\tau\) time later, provided \(X(t) = x_k\) at \(t\).
+Now, we know that our signal can take only values \$x\_i=\pm\$1. We also
+know that \(P[X(t)=x_k]\), etc approximate the \(sinh\) and \(cosh\)
+functions. Substituting these in allow us to solve \emph{analytically}
+for the shape of \(R_{yy}\). Let's compare the signal at two different
+times, \((t+\tau)=t_2)\) and \(t=t_1\)
+
+    For \(x_k=1\), \(x_j=-1\) know that, if the signal at \(t_1\) and
+\(t_2\) stays the same:
+
+\[ P[X(t_2)=1|X(t_1)=1] = P[X(t_2)=-1\mid X(t_1)=-1] = e^{-\lambda (t_2 - t_1) }cosh(\lambda(t_2 - t_1))    \]
+
+and if the signal changes, that
+
+\[ P[X(t_2)=-1|X(t_1)=1] = P[X(t_2)=1\mid X(t_1)=-1] =  e^{-\lambda (t_2 - t_1) }sinh(\lambda(t_2 - t_1)) \]
+
+    Then, plugging in everything into the expression for
+\(R_{yy}(t_1, t_2)\), we obtain:
+
+\[ R_{yy}(t_1, t_2) =  e^{-\lambda t_1}cosh(\lambda t_1) [e^{-\lambda (t_2 - t_1) }cosh(\lambda(t_2 - t_1)) - e^{-\lambda (t_2 - t_1) }sinh(\lambda(t_2 - t_1))] \]
+\[- e^{-\lambda t_1}sinh(\lambda t_1) [e^{-\lambda (t_2 - t_1) }cosh(\lambda(t_2 - t_1)) - e^{-\lambda (t_2 - t_1) }sinh(\lambda(t_2 - t_1))]    \]
+
+    This reduces (albeit with some algebra) to simply:
+
+\[ R_{yy}(t_1, t_2) = e^{-\lambda (t_1-t_2)}\] or
+\[ R_{yy}(\tau) = e^{-\lambda (\tau)} \]
+
+So the autocorrelation function for a random telegraph (or binary
+promoter) signal is simply an exponential decay function, dependent on
+the time delay \(\tau = t_1 - t_2\) and the mean, \(\lambda\), of the
+random (poisson) distribution. \(\lambda=1/\tau_{characteristic}\), so
+fitting to the exponential curve we can determine the average time our
+signal spends ON or OFF. We'll simulate this below to visualize the
+solution:
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}1}]:} \PY{k+kn}{import} \PY{n+nn}{numpy} \PY{k}{as} \PY{n+nn}{np}
+        \PY{k+kn}{import} \PY{n+nn}{matplotlib}\PY{n+nn}{.}\PY{n+nn}{pyplot} \PY{k}{as} \PY{n+nn}{plt}
+        
+        \PY{c+c1}{\PYZsh{} Let\PYZsq{}s write a function to demonstrate our Poisson telegraph signal. Then we can change our inputs to see how a}
+        \PY{c+c1}{\PYZsh{} numerical simulation can approach the analytic solution}
+        \PY{k}{def} \PY{n+nf}{poisson\PYZus{}signal}\PY{p}{(}\PY{n}{sig\PYZus{}length}\PY{p}{,} \PY{n}{lmda}\PY{p}{)}\PY{p}{:}
+            \PY{c+c1}{\PYZsh{} some input parameters for our signal and autocorrelation;}
+            \PY{n}{lmda} \PY{o}{=} \PY{n}{lmda}  \PY{c+c1}{\PYZsh{} average duration (\PYZsq{}seconds\PYZsq{})}
+            \PY{n}{sig\PYZus{}length} \PY{o}{=} \PY{n}{sig\PYZus{}length}       \PY{c+c1}{\PYZsh{} length of our telegraph signal}
+        
+            \PY{n}{on\PYZus{}off} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{random}\PY{o}{.}\PY{n}{poisson}\PY{p}{(}\PY{n}{lmda}\PY{p}{,} \PY{n}{sig\PYZus{}length}\PY{p}{)}  \PY{c+c1}{\PYZsh{} array of ON\PYZhy{}OFF wait times}
+            \PY{n}{telegraph\PYZus{}sig} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{zeros}\PY{p}{(}\PY{n}{sig\PYZus{}length}\PY{p}{)}           \PY{c+c1}{\PYZsh{} empty array of ON/OFF promoter switches}
+        
+            \PY{n}{state} \PY{o}{=} \PY{l+m+mi}{0}       \PY{c+c1}{\PYZsh{} start in the off state}
+            \PY{n}{t1} \PY{o}{=} \PY{l+m+mi}{0}          \PY{c+c1}{\PYZsh{} start at t1}
+            \PY{n}{t2} \PY{o}{=} \PY{l+m+mi}{0}          
+        
+        
+            \PY{k}{for} \PY{n}{i} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{n}{sig\PYZus{}length}\PY{p}{)}\PY{p}{:}
+                \PY{n}{t2} \PY{o}{=} \PY{n+nb}{int}\PY{p}{(}\PY{n}{on\PYZus{}off}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)}                         \PY{c+c1}{\PYZsh{} find the time until which the signal changes state}
+                \PY{n}{telegraph\PYZus{}sig}\PY{p}{[}\PY{n}{t1}\PY{p}{:}\PY{p}{(}\PY{n}{t1} \PY{o}{+} \PY{n}{t2}\PY{p}{)}\PY{p}{]} \PY{o}{=} \PY{n}{state}         \PY{c+c1}{\PYZsh{} for the given duration of the ith state, fill the value with either \PYZdq{}ON\PYZdq{} or \PYZdq{}OFF\PYZdq{} values}
+                \PY{n}{state} \PY{o}{=} \PY{l+m+mi}{1} \PY{o}{\PYZhy{}} \PY{n}{state}                           \PY{c+c1}{\PYZsh{} change the signal by flipping the switch to either 1 or 0.}
+                \PY{n}{t1} \PY{o}{=} \PY{n}{t1} \PY{o}{+} \PY{n}{t2}                                \PY{c+c1}{\PYZsh{} move on in time}
+               
+            \PY{n}{telegraph\PYZus{}sig} \PY{o}{=} \PY{n}{telegraph\PYZus{}sig}\PY{o}{*}\PY{l+m+mi}{2} \PY{o}{\PYZhy{}} \PY{l+m+mi}{1}             \PY{c+c1}{\PYZsh{} shift signal to bounce between +/\PYZhy{}1}
+            \PY{k}{return} \PY{n}{telegraph\PYZus{}sig}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}2}]:} \PY{n}{telegraph\PYZus{}sig} \PY{o}{=} \PY{n}{poisson\PYZus{}signal}\PY{p}{(}\PY{n}{sig\PYZus{}length}\PY{o}{=}\PY{l+m+mi}{300}\PY{p}{,} \PY{n}{lmda}\PY{o}{=}\PY{l+m+mi}{2}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}3}]:} \PY{c+c1}{\PYZsh{} Let\PYZsq{}s see what a 100\PYZhy{}second piece of our signal looks like    }
+        \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{telegraph\PYZus{}sig}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{100}\PY{p}{]}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{simulated promoter state signal}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}    
+        \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}    
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_10_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}4}]:} \PY{c+c1}{\PYZsh{} define a function to autocorrelate our data}
+        \PY{k}{def} \PY{n+nf}{autocorrelate\PYZus{}data}\PY{p}{(}\PY{n}{telegraph\PYZus{}sig}\PY{p}{)}\PY{p}{:}
+            \PY{n}{autocorrelation} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{correlate}\PY{p}{(}\PY{n}{telegraph\PYZus{}sig}\PY{p}{,} \PY{n}{telegraph\PYZus{}sig}\PY{p}{,} \PY{n}{mode}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{full}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}   
+            \PY{n}{cutoff} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{argmax}\PY{p}{(}\PY{n}{autocorrelation}\PY{p}{)}
+            \PY{k}{return} \PY{n}{autocorrelation}\PY{p}{[}\PY{n}{cutoff}\PY{p}{:}\PY{p}{]}\PY{o}{/}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{autocorrelation}\PY{p}{)}  \PY{c+c1}{\PYZsh{} function is symmetric so we only take half}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}5}]:} \PY{n}{autocorrelation} \PY{o}{=} \PY{n}{autocorrelate\PYZus{}data}\PY{p}{(}\PY{n}{telegraph\PYZus{}sig}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}6}]:} \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{autocorrelation}\PY{p}{)}\PY{p}{)}  \PY{c+c1}{\PYZsh{} x data to plot over}
+        
+        \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{,} \PY{n}{autocorrelation}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Example Autocorrelated data}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Time Delay \PYZdl{}}\PY{l+s+s2}{\PYZbs{}}\PY{l+s+s2}{tau\PYZdl{}}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{R(\PYZdl{}}\PY{l+s+s2}{\PYZbs{}}\PY{l+s+s2}{tau\PYZdl{})}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_13_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}7}]:} \PY{c+c1}{\PYZsh{} Now let\PYZsq{}s fit our function to see if we can guess our average time between switching.}
+        \PY{c+c1}{\PYZsh{} define the exponential decay function}
+        \PY{k}{def} \PY{n+nf}{exp\PYZus{}decay}\PY{p}{(}\PY{n}{t}\PY{p}{,} \PY{n}{lmda}\PY{p}{)}\PY{p}{:}
+            \PY{k}{return} \PY{n}{np}\PY{o}{.}\PY{n}{exp}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{p}{(}\PY{n}{lmda}\PY{p}{)} \PY{o}{*} \PY{n}{t}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}8}]:} \PY{k+kn}{from} \PY{n+nn}{scipy}\PY{n+nn}{.}\PY{n+nn}{optimize} \PY{k}{import} \PY{n}{curve\PYZus{}fit}
+        \PY{n}{lmda\PYZus{}fit}\PY{p}{,}\PY{n}{\PYZus{}\PYZus{}} \PY{o}{=} \PY{n}{curve\PYZus{}fit}\PY{p}{(}\PY{n}{exp\PYZus{}decay}\PY{p}{,} \PY{n}{t}\PY{p}{,} \PY{n}{autocorrelation}\PY{p}{)}
+        \PY{n+nb}{print}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Characteristic wait time = }\PY{l+s+si}{\PYZob{}:.2f\PYZcb{}}\PY{l+s+s2}{\PYZdq{}}\PY{o}{.}\PY{n}{format}\PY{p}{(}\PY{n}{lmda\PYZus{}fit}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{)}\PY{p}{)} 
+\end{Verbatim}
+
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+Characteristic wait time = 1.58
+
+    \end{Verbatim}
+
+    Let's visualize the fit below, "zooming in" on the decay feature at
+\(\tau= \tau_{characteristic}\)
+
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}9}]:} \PY{n}{fig}\PY{p}{,}\PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{5}\PY{p}{)}\PY{p}{,} \PY{n}{sharex}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{50}\PY{p}{]}\PY{p}{,} \PY{n}{autocorrelation}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{50}\PY{p}{]}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Example Autocorrelated data}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{50}\PY{p}{]}\PY{p}{,} \PY{n}{exp\PYZus{}decay}\PY{p}{(}\PY{n}{t}\PY{p}{[}\PY{p}{:}\PY{l+m+mi}{50}\PY{p}{]}\PY{p}{,} \PY{n}{lmda\PYZus{}fit}\PY{p}{)}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Exponential Decay Fit}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        
+        \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{l+m+mi}{1}\PY{o}{/}\PY{n}{lmda\PYZus{}fit}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{,} \PY{l+m+mf}{1.}\PY{o}{/}\PY{n}{np}\PY{o}{.}\PY{n}{e}\PY{p}{,} \PY{n}{marker}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{*}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{12}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Characteristic time point}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{l+m+mi}{1}\PY{o}{/}\PY{n}{lmda\PYZus{}fit}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{,} \PY{l+m+mf}{1.}\PY{o}{/}\PY{n}{np}\PY{o}{.}\PY{n}{e}\PY{p}{,} \PY{n}{marker}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{o}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,}\PY{n}{markersize}\PY{o}{=}\PY{l+m+mi}{5}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Simulated characteristic time point}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}xlabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Time Delay \PYZdl{}}\PY{l+s+s2}{\PYZbs{}}\PY{l+s+s2}{tau\PYZdl{}}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}ylabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Autocorrelation R(\PYZdl{}}\PY{l+s+s2}{\PYZbs{}}\PY{l+s+s2}{tau\PYZdl{})}\PY{l+s+s2}{\PYZdq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{20}\PY{p}{)}
+        \PY{n}{ax}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{12}\PY{p}{)}
+        \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_17_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    We see that the fit yields a fit that approximates the simulation input
+\(\tau_{characteristic} = 2\) seconds. As the signal length approaches
+infinity, we expect to see the fit get closer and closer to 2 seconds.
 
     \subsection{Two-State Promoter: A more realistic
 system}\label{two-state-promoter-a-more-realistic-system}
@@ -402,8 +602,9 @@ then subtract out the mean value of each trace. The result is:
 
 \[ <F(t)> = \frac{I(t) - \mu_{I(t)}}{I_o} \]
 
-Then, autocorrelating each corrected trace, \(<F(t)>\) and taking the
-average of all autocorrelations, we obtain something like this:
+Then, autocorrelating each normalized, corrected trace, \(<F(t)>\) and
+taking the average of all autocorrelations, we obtain something like
+this:
 
 \begin{figure}
 \centering
@@ -514,7 +715,7 @@ packages that we're going to need for our analysis:
 fitting our data:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}5}]:} \PY{c+c1}{\PYZsh{} define all needed parameters \PYZsh{}}
+{\color{incolor}In [{\color{incolor}3}]:} \PY{c+c1}{\PYZsh{} define all needed parameters \PYZsh{}}
         \PY{n}{stepsize} \PY{o}{=} \PY{l+m+mf}{3.8}               \PY{c+c1}{\PYZsh{} time between cell observations, seconds}
         \PY{n}{tPol}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{;}                      \PY{c+c1}{\PYZsh{} time it takes to load polII onto gene}
         \PY{n}{k\PYZus{}elong}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{;}                  \PY{c+c1}{\PYZsh{} velocity of polII along gene; elongation rate in bp/second}
@@ -527,7 +728,7 @@ fitting our data:
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}8}]:} \PY{c+c1}{\PYZsh{} let\PYZsq{}s take a quick look at what the loop function for the Snail MS2 system}
+{\color{incolor}In [{\color{incolor}4}]:} \PY{c+c1}{\PYZsh{} let\PYZsq{}s take a quick look at what the loop function for the Snail MS2 system}
         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Single polII Snail Promoter MS2 Loop function}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Gene location (bp)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Number of GFP loops}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
@@ -537,7 +738,7 @@ fitting our data:
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_12_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_29_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
@@ -548,7 +749,7 @@ sizePol sections, indexing them by \(i\). We do this by calling the
 function Interploops
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}9}]:} \PY{c+c1}{\PYZsh{} Snail MS2 system loop function\PYZhy{}\PYZhy{}INTERPOLATED}
+{\color{incolor}In [{\color{incolor}5}]:} \PY{c+c1}{\PYZsh{} Snail MS2 system loop function\PYZhy{}\PYZhy{}INTERPOLATED}
         \PY{n}{loopsinterp} \PY{o}{=} \PY{n}{loopInterpolate}\PY{p}{(}\PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{tPol}\PY{p}{)}
         
         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{loopsinterp}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Single polII Snail Promoter MS2 Loop function}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
@@ -560,7 +761,7 @@ function Interploops
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_14_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_31_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
@@ -568,71 +769,65 @@ function Interploops
 Using the Table function from astropy, we can read in our data
 \textbf{provided it's in the following format:}
 
-\begin{figure}
-\centering
-\includegraphics{attachment:fichier-ex.PNG}
-\caption{fichier-ex.PNG}
-\end{figure}
-
-That is, each trace as a column in .csv format, with a unique string
-marking the column head. The names of each cell doesn't matter, the
-strings just help astropy.table read our data.
-
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}133}]:} \PY{c+c1}{\PYZsh{} Now let\PYZsq{}s read in the Snail Promoter data}
-          \PY{n}{table} \PY{o}{=} \PY{n}{Table}\PY{o}{.}\PY{n}{read}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{snail\PYZhy{}data/snail\PYZhy{}control\PYZhy{}trace\PYZhy{}2.csv}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{table}
+{\color{incolor}In [{\color{incolor}33}]:} \PY{c+c1}{\PYZsh{} Now let\PYZsq{}s read in the Snail Promoter data}
+         \PY{n}{table} \PY{o}{=} \PY{n}{Table}\PY{o}{.}\PY{n}{read}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{snail\PYZhy{}data/snail\PYZhy{}control\PYZhy{}trace\PYZhy{}1.csv}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{table}
 \end{Verbatim}
 
 
 \begin{Verbatim}[commandchars=\\\{\}]
-{\color{outcolor}Out[{\color{outcolor}133}]:} <Table length=541>
-          Spot\_10 Spot\_11 Spot\_12 Spot\_13 Spot\_14 {\ldots} Spot\_94 Spot\_95 Spot\_97 Spot\_98
-           int32   int32   int32   int32   int32  {\ldots}  int32   int32   int32   int32 
-          ------- ------- ------- ------- ------- {\ldots} ------- ------- ------- -------
-                0       0       0       0       0 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0       0
-                0       0       0    9437       0 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0       0
-            12649       0       0       0   10261 {\ldots}       0       0       0       0
-                0       0       0       0       0 {\ldots}       0       0       0   10619
-                0       0       0       0       0 {\ldots}       0       0    9942       0
-              {\ldots}     {\ldots}     {\ldots}     {\ldots}     {\ldots} {\ldots}     {\ldots}     {\ldots}     {\ldots}     {\ldots}
-            73176  108611   72136  156183  125915 {\ldots}   97416   56070   97287   59527
-           103276   95719   91587  135415  136710 {\ldots}   81474   69811   36343   32734
-            68399   97285   90563  103856  113121 {\ldots}   77445   66272   22640   57324
-           108937   90383   78094  132734  109069 {\ldots}  112847   22948   96242   47203
-            78939  129292   72110  116855  105556 {\ldots}   99917   41572   92729  103697
-            70492   74349   65852   87197  146923 {\ldots}  100930   77346   84043   76620
-            86324   88836   68805  151170   93711 {\ldots}  120237   51656   17846   54896
-            61906   98765   84884   96990  157500 {\ldots}  108120   58929   70854   55438
-            98920   71764   87732  107789  108204 {\ldots}  120713   51859   40544  111640
-            82417  101066   87561  120570  118947 {\ldots}   84738   68238   95793   73486
+{\color{outcolor}Out[{\color{outcolor}33}]:} <Table length=554>
+         Spot\_10 Spot\_12 Spot\_13 Spot\_14 Spot\_15 {\ldots} Spot\_110 Spot\_138 Spot\_147 Spot\_168
+          int32   int32   int32   int32   int32  {\ldots}  int32    int32    int32    int32  
+         ------- ------- ------- ------- ------- {\ldots} -------- -------- -------- --------
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+               0       0       0       0       0 {\ldots}        0        0        0        0
+             {\ldots}     {\ldots}     {\ldots}     {\ldots}     {\ldots} {\ldots}      {\ldots}      {\ldots}      {\ldots}      {\ldots}
+           50783   81082   88794  100680   96774 {\ldots}    56288   132603   166917   112887
+          108299   90881   78619   95177  117475 {\ldots}    70954   100048   141626    76825
+          109593   74345   60526   80792   73579 {\ldots}    44183   111143   151514    78080
+          126061   52910   62475   59770   96231 {\ldots}    71119   117688   134770   136157
+           98313   77676   79014  101176  102536 {\ldots}    62730   101693   175523    94769
+           84861   44035   57447   88754   94636 {\ldots}    49937   139327    95715   103804
+          104167   46997   46940   79728   86593 {\ldots}    64206    98403   102795   117720
+           65349   56256   62249   64498   98071 {\ldots}    81530   133530   140990    84318
+          107976   63562   63803   73583   64587 {\ldots}   106485   107898   157244   107201
+          115514   65839   57818   63233  100341 {\ldots}    84935    83343   105693   103084
 \end{Verbatim}
             
+    That is, each trace as a column in .csv format, with a unique string
+marking the column head. The names of each cell doesn't matter, the
+strings just help astropy.table read our data.
+
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}134}]:} \PY{c+c1}{\PYZsh{} Now let\PYZsq{}s build a Python list of all of the cell traces from the read\PYZhy{}in table.}
-          \PY{n}{datatracelist} \PY{o}{=} \PY{p}{[}\PY{p}{]}
-          \PY{k}{for} \PY{n}{name} \PY{o+ow}{in} \PY{n}{table}\PY{o}{.}\PY{n}{colnames}\PY{p}{:}
-              \PY{n}{datatracelist}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{asarray}\PY{p}{(}\PY{n}{table}\PY{p}{[}\PY{n}{name}\PY{p}{]}\PY{p}{)}\PY{p}{)}\PY{o}{.}\PY{n}{astype}\PY{p}{(}\PY{n+nb}{float}\PY{p}{)}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}34}]:} \PY{c+c1}{\PYZsh{} Now let\PYZsq{}s build a Python list of all of the cell traces from the read\PYZhy{}in table.}
+         \PY{n}{datatracelist} \PY{o}{=} \PY{p}{[}\PY{p}{]}
+         \PY{k}{for} \PY{n}{name} \PY{o+ow}{in} \PY{n}{table}\PY{o}{.}\PY{n}{colnames}\PY{p}{:}
+             \PY{n}{datatracelist}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{asarray}\PY{p}{(}\PY{n}{table}\PY{p}{[}\PY{n}{name}\PY{p}{]}\PY{p}{)}\PY{p}{)}\PY{o}{.}\PY{n}{astype}\PY{p}{(}\PY{n+nb}{float}\PY{p}{)}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}135}]:} \PY{c+c1}{\PYZsh{} Let\PYZsq{}s take a look at what these traces look like:}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{[}\PY{l+m+mi}{20}\PY{p}{]}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{linewidth}\PY{o}{=}\PY{l+m+mf}{0.7}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Single Cell trace GFP Intensity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (observation steps)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}35}]:} \PY{c+c1}{\PYZsh{} Let\PYZsq{}s take a look at what these traces look like:}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{[}\PY{l+m+mi}{2}\PY{p}{]}\PY{p}{,} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{linewidth}\PY{o}{=}\PY{l+m+mf}{0.7}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Single Cell trace GFP Intensity}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Time (observation steps)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_18_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_36_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
@@ -641,15 +836,16 @@ majority of our traces are "ON" and in a "steady state". To do this, we
 plot the mean of all the traces and find where our mean signal plateaus:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}136}]:} \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Mean Spot Intensity Over Time}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}36}]:} \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{)}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Mean Spot Intensity Over Time}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{xlim}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mi}{600}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_20_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_38_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
@@ -657,9 +853,9 @@ plot the mean of all the traces and find where our mean signal plateaus:
 or less steady state. Let's set our start and stop indeces:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}138}]:} \PY{c+c1}{\PYZsh{} define start and stop indeces}
-          \PY{n}{start\PYZus{}index} \PY{o}{=} \PY{l+m+mi}{250} 
-          \PY{n}{stop\PYZus{}index} \PY{o}{=} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}    \PY{c+c1}{\PYZsh{} end of trace}
+{\color{incolor}In [{\color{incolor}37}]:} \PY{c+c1}{\PYZsh{} define start and stop indeces}
+         \PY{n}{start\PYZus{}index} \PY{o}{=} \PY{l+m+mi}{200} 
+         \PY{n}{stop\PYZus{}index} \PY{o}{=} \PY{l+m+mi}{580}    \PY{c+c1}{\PYZsh{} end of trace}
 \end{Verbatim}
 
 
@@ -667,8 +863,8 @@ or less steady state. Let's set our start and stop indeces:
 "tracePackageAutocorrelation"
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}139}]:} \PY{c+c1}{\PYZsh{} call the object}
-          \PY{n}{autopackage} \PY{o}{=} \PY{n}{tracePackageAutocorrelation}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{start\PYZus{}index}\PY{p}{,} \PY{n}{stop\PYZus{}index}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}38}]:} \PY{c+c1}{\PYZsh{} call the object}
+         \PY{n}{autopackage} \PY{o}{=} \PY{n}{tracePackageAutocorrelation}\PY{p}{(}\PY{n}{datatracelist}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{start\PYZus{}index}\PY{p}{,} \PY{n}{stop\PYZus{}index}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -680,28 +876,29 @@ normalized by \(I_o\) - corrected\_tracelist: Mean-subtraced trace data
 - autolist: List of individual cells' autocorr functions
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}140}]:} \PY{c+c1}{\PYZsh{} Let\PYZsq{}s plot the average function to take a look at it:}
-          \PY{n}{fig}\PY{p}{,}\PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{5}\PY{p}{)}\PY{p}{,} \PY{n}{sharex}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
-          
-          \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{autopackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{:}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{o}{*} \PY{n}{stepsize}   \PY{c+c1}{\PYZsh{} we want our axis in units of seconds}
-          
-          \PY{n}{tplot} \PY{o}{=} \PY{n}{t}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}                                                \PY{c+c1}{\PYZsh{} take every 5th element for simplicity}
-          \PY{n}{autoav} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{autoav}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
-          \PY{n}{autostd} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{auto\PYZus{}err}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
-          \PY{n}{avgflors} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{avgflors}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
-          
-          \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{tplot}\PY{p}{,} \PY{n}{autoav}\PY{p}{,} \PY{n}{color} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Snail MS2 Average Autocorrelation}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
-          \PY{n}{ax}\PY{o}{.}\PY{n}{errorbar}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{tplot}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{n}{autoav}\PY{p}{,} \PY{n}{yerr}\PY{o}{=}\PY{p}{(}\PY{n}{autostd}\PY{p}{,} \PY{n}{autostd}\PY{p}{)}\PY{p}{,} \PY{n}{ecolor}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{b}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{l+m+mf}{0.5}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{1\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{sigma\PYZdl{} standard error}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}  
-          \PY{n}{ax}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{large}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}xlabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Wait time \PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{tau\PYZdl{} (seconds)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}ylabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Correlation M(\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{tau\PYZdl{})}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}ylim}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mf}{1.2}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}39}]:} \PY{c+c1}{\PYZsh{} Let\PYZsq{}s plot the average function to take a look at it:}
+         \PY{n}{fig}\PY{p}{,}\PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{5}\PY{p}{)}\PY{p}{,} \PY{n}{sharex}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+         
+         \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{autopackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{:}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{o}{*} \PY{n}{stepsize}   \PY{c+c1}{\PYZsh{} we want our axis in units of seconds}
+         
+         \PY{n}{tplot} \PY{o}{=} \PY{n}{t}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}                                                \PY{c+c1}{\PYZsh{} take every 5th element for simplicity}
+         \PY{n}{autoav} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{autoav}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
+         \PY{n}{autostd} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{auto\PYZus{}err}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
+         \PY{n}{avgflors} \PY{o}{=} \PY{n}{autopackage}\PY{o}{.}\PY{n}{avgflors}\PY{p}{[}\PY{p}{:}\PY{p}{:}\PY{l+m+mi}{5}\PY{p}{]}
+         
+         \PY{n}{ax}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{tplot}\PY{p}{,} \PY{n}{autoav}\PY{p}{,} \PY{n}{color} \PY{o}{=} \PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Snail MS2 Average Autocorrelation}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{errorbar}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{tplot}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{n}{autoav}\PY{p}{,} \PY{n}{yerr}\PY{o}{=}\PY{p}{(}\PY{n}{autostd}\PY{p}{,} \PY{n}{autostd}\PY{p}{)}\PY{p}{,} \PY{n}{ecolor}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{b}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{alpha}\PY{o}{=}\PY{l+m+mf}{0.5}\PY{p}{,} \PY{n}{label} \PY{o}{=} \PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{1\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{sigma\PYZdl{} standard error}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}  
+         \PY{n}{ax}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{large}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}xlabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Wait time \PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{tau\PYZdl{} (seconds)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}ylabel}\PY{p}{(}\PY{l+s+sa}{r}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Correlation M(\PYZdl{}}\PY{l+s+s1}{\PYZbs{}}\PY{l+s+s1}{tau\PYZdl{})}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}ylim}\PY{p}{(}\PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{,} \PY{l+m+mf}{1.2}\PY{p}{)}
+         \PY{n}{ax}\PY{o}{.}\PY{n}{set\PYZus{}xlim}\PY{p}{(}\PY{l+m+mi}{0}\PY{p}{,} \PY{l+m+mi}{2100}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_26_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_44_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
@@ -712,8 +909,8 @@ function. This class incorporates both the analytic model, as well as a
 scipy.optimize nonlinear least-squares fitting routine.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}141}]:} \PY{c+c1}{\PYZsh{} First, create the fitting class object, feeding in the autopackage object.}
-          \PY{n}{fitAutoPack} \PY{o}{=} \PY{n}{fitAutocorrelationFunction}\PY{p}{(}\PY{n}{autopackage}\PY{p}{,} \PY{n}{tPol}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{stepsize}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}40}]:} \PY{c+c1}{\PYZsh{} First, create the fitting class object, feeding in the autopackage object.}
+         \PY{n}{fitAutoPack} \PY{o}{=} \PY{n}{fitAutocorrelationFunction}\PY{p}{(}\PY{n}{autopackage}\PY{p}{,} \PY{n}{tPol}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{stepsize}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -731,40 +928,44 @@ whether or not to display all values at the end - upper/lower bounds for
 the curve fitting from skewing towards infinity. To guesstimate a
 healthy bound, take a look at the inflection in the \(M(\tau)\) above.
 The \(\tau_{char}=(k_{kon} + k_{off})\) should likely not be more than
-1, and certainly not less than 0 - fitpon: (\emph{default = True}) This
-tells the function whether to hold pon constant or not (for testing
-inference later) - pon= ... (default: don't include) Only for testing
-inference.
+1, and certainly not less than 0. We also know that we won't be able to
+observe any features in our traces with a time resolution \emph{finer
+than the polymerase blocking time}. So we set our upper limit to
+1/stepsize. - fitpon: (\emph{default = True}) This tells the function
+whether to hold pon constant or not (for testing inference later) - pon=
+... (default: don't include) Only for testing inference.
 
 Let's see what we get:
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}142}]:} \PY{n}{kon\PYZus{}fit}\PY{p}{,}\PY{n}{koff\PYZus{}fit}\PY{p}{,}\PY{n}{chrtime}\PY{p}{,}\PY{n}{pon}\PY{p}{,}\PY{n}{popt}\PY{p}{,}\PY{n}{pcov} \PY{o}{=} \PY{n}{fitAutoPack}\PY{o}{.}\PY{n}{leastSquaresAutoFit}\PY{p}{(}\PY{n}{printvals}\PY{o}{=}\PY{k+kc}{True}\PY{p}{,} \PY{n}{upperbound}\PY{o}{=}\PY{l+m+mf}{0.1}\PY{p}{,}\PY{n}{lowerbound}\PY{o}{=}\PY{l+m+mf}{0.001}\PY{p}{,} \PY{n}{fitpon}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}41}]:} \PY{n}{kon\PYZus{}fit}\PY{p}{,}\PY{n}{koff\PYZus{}fit}\PY{p}{,}\PY{n}{chrtime}\PY{p}{,}\PY{n}{pon}\PY{p}{,}\PY{n}{popt}\PY{p}{,}\PY{n}{pcov} \PY{o}{=} \PY{n}{fitAutoPack}\PY{o}{.}\PY{n}{leastSquaresAutoFit}\PY{p}{(}\PY{n}{printvals}\PY{o}{=}\PY{k+kc}{True}\PY{p}{,} 
+                                                                                  \PY{n}{upperbound}\PY{o}{=}\PY{l+m+mi}{1}\PY{o}{/}\PY{n}{tPol}\PY{p}{,}\PY{n}{lowerbound}\PY{o}{=}\PY{l+m+mf}{0.001}\PY{p}{,} \PY{n}{fitpon}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-Pon                       =  0.3104866457913344
-k\_on + k\_off              =  0.004339355006084276 s\^{}-1
-k\_on                      =  0.0013473117807369422
-k\_off                     =  0.0029920432253473335
+Pon                       = 0.34 +/- 0.013624712930912719
+k\_on + k\_off              = 0.00360 s\^{}-1
+k\_on                      = 0.00121 +\textbackslash{}-0.00009 s\^{}-1
+k\_off                     = 0.00239 +\textbackslash{}-0.00009 s\^{}-1
 t\_polII\_block             =  6 seconds
-characteristic timescale  =  230.4489949768767 seconds
-covariance                =  1.2577654983361129e-08
+characteristic timescale  = 277.98 seconds
+covariance                =  7.996870864394987e-09
 
     \end{Verbatim}
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_30_1.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_48_1.png}
     \end{center}
     { \hspace*{\fill} \\}
     
     Cool! Now we have an estimate for our characteristic time, as well as
 our promoter dynamics. Assuming that our cells follow a two-state
-promoter firing system, we infer that our system spends \(1/k_{on}=\)
-672 seconds in the "OFF" state, and \(1/k_{off}=\) 345 seconds in the
-"ON" state. (\(k_{off}\) governs how long until we \emph{switch} back
-"ON", \(k_{on}\) how long we switch back "OFF")
+promoter firing system, we infer that our system spends
+\(1/k_{on}\approx\) 760 seconds in the "OFF" state, and
+\(1/k_{off}\approx\) 330 seconds in the "ON" state. (\(k_{off}\) governs
+how long until we \emph{switch} back "ON", \(k_{on}\) how long we switch
+back "OFF")
 
     From here we start to see what we mean by "bursty" transcription
 patterns. We see that in steady-state, our system tends to wait longer
@@ -777,18 +978,20 @@ Simulations}\label{testing-inferred-parameters-numerical-simulations}
 In order to check our hypothesis that our cells fire according to these
 "ON" and "OFF" wait time distributions, we need to create a bunch of
 cell samples \emph{in silico} by numerically generating traces according
-to our hypothetical system.
+to our hypothetical system. What this does is tests whether or not we
+can generate data according to our proposed two-state system using the
+parameters obtained by the raw data.
 
 What we're going to do is: - insert our inferred parameters, \(k_{on}\)
 and \(k_{off}\) into a random number generator to create a promoter
 "ON/OFF" signal - using the same loop function, k\_elong, tPol, stepsize
 parameters, "grow" a simulated GFP signal when the promoter is "ON" -
-process these traces as if they were real data - re-fit the analytic
-function to see if we get the same \(k_{on}\) and \(k_{off}\) as for our
-raw data.
+process these simulated traces as if they were real data - re-fit the
+analytic function to see if we get the same \(k_{on}\) and \(k_{off}\)
+as for our raw data.
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}54}]:} \PY{c+c1}{\PYZsh{} For SIMULATING data (checking hypotheses, results)}
+{\color{incolor}In [{\color{incolor}42}]:} \PY{c+c1}{\PYZsh{} For SIMULATING data (checking hypotheses, results)}
          \PY{k+kn}{from} \PY{n+nn}{telegraph} \PY{k}{import} \PY{n}{exponential}     \PY{c+c1}{\PYZsh{} exponentially\PYZhy{}distributed promoter signal}
          \PY{k+kn}{from} \PY{n+nn}{pol\PYZus{}signal} \PY{k}{import} \PY{n}{pol\PYZus{}signal}     \PY{c+c1}{\PYZsh{} simulated GFP signal}
          \PY{k+kn}{from} \PY{n+nn}{traceTwoStateSimulation} \PY{k}{import} \PY{n}{tracePackageSimulation}  \PY{c+c1}{\PYZsh{} simulated embryo region}
@@ -796,25 +999,25 @@ raw data.
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}143}]:} \PY{c+c1}{\PYZsh{} define all needed parameters for simulation}
-          \PY{n}{stepsize} \PY{o}{=} \PY{l+m+mf}{3.8}               \PY{c+c1}{\PYZsh{} time between observations, seconds}
-          \PY{n}{tPol}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{;}                      \PY{c+c1}{\PYZsh{} polII loading time}
-          \PY{n}{k\PYZus{}elong}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{;}                  \PY{c+c1}{\PYZsh{} Elongation rate}
-          \PY{n}{sizePol} \PY{o}{=} \PY{n}{tPol} \PY{o}{*} \PY{n}{k\PYZus{}elong}     \PY{c+c1}{\PYZsh{} Footprint, in basepairs, of polII}
-          
-          \PY{c+c1}{\PYZsh{} Inferred Parameters from the above analysis we wish to test HERE:}
-          \PY{n}{k\PYZus{}on} \PY{o}{=} \PY{n}{kon\PYZus{}fit}
-          \PY{n}{k\PYZus{}off} \PY{o}{=} \PY{n}{koff\PYZus{}fit}
-          \PY{n}{duration} \PY{o}{=} \PY{l+m+mi}{2000}      \PY{c+c1}{\PYZsh{} each cell trace\PYZsq{}s duration, in seconds}
-          \PY{n}{num} \PY{o}{=} \PY{l+m+mi}{100}           \PY{c+c1}{\PYZsh{} number of cells in our simulated dataset}
-          
-          \PY{n}{loop\PYZus{}function} \PY{o}{=} \PY{n}{SnailPromoterMs2Loops}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{loop\PYZus{}function}    \PY{c+c1}{\PYZsh{} our MS2 loop function (again)}
+{\color{incolor}In [{\color{incolor}43}]:} \PY{c+c1}{\PYZsh{} define all needed parameters for simulation}
+         \PY{n}{stepsize} \PY{o}{=} \PY{l+m+mf}{3.8}               \PY{c+c1}{\PYZsh{} time between observations, seconds}
+         \PY{n}{tPol}\PY{o}{=}\PY{l+m+mi}{6}\PY{p}{;}                      \PY{c+c1}{\PYZsh{} polII loading time}
+         \PY{n}{k\PYZus{}elong}\PY{o}{=}\PY{l+m+mi}{25}\PY{p}{;}                  \PY{c+c1}{\PYZsh{} Elongation rate}
+         \PY{n}{sizePol} \PY{o}{=} \PY{n}{tPol} \PY{o}{*} \PY{n}{k\PYZus{}elong}     \PY{c+c1}{\PYZsh{} Footprint, in basepairs, of polII}
+         
+         \PY{c+c1}{\PYZsh{} Inferred Parameters from the above analysis we wish to test HERE:}
+         \PY{n}{k\PYZus{}on} \PY{o}{=} \PY{n}{kon\PYZus{}fit}
+         \PY{n}{k\PYZus{}off} \PY{o}{=} \PY{n}{koff\PYZus{}fit}
+         \PY{n}{duration} \PY{o}{=} \PY{l+m+mi}{3000}      \PY{c+c1}{\PYZsh{} each cell trace\PYZsq{}s duration, in seconds}
+         \PY{n}{num} \PY{o}{=} \PY{l+m+mi}{100}           \PY{c+c1}{\PYZsh{} number of cells in our simulated dataset}
+         
+         \PY{n}{loop\PYZus{}function} \PY{o}{=} \PY{n}{SnailPromoterMs2Loops}\PY{p}{(}\PY{p}{)}\PY{o}{.}\PY{n}{loop\PYZus{}function}  \PY{c+c1}{\PYZsh{} our MS2 loop function (again)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}144}]:} \PY{c+c1}{\PYZsh{} simulated trace package object, using the above inputs.}
-          \PY{n}{tracePackage} \PY{o}{=} \PY{n}{tracePackageSimulation}\PY{p}{(}\PY{n}{num}\PY{p}{,} \PY{n}{k\PYZus{}on}\PY{p}{,} \PY{n}{k\PYZus{}off}\PY{p}{,} \PY{n}{duration}\PY{p}{,} \PY{n}{stepsize}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{tPol}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}44}]:} \PY{c+c1}{\PYZsh{} simulated trace package object, using the above inputs.}
+         \PY{n}{tracePackage} \PY{o}{=} \PY{n}{tracePackageSimulation}\PY{p}{(}\PY{n}{num}\PY{p}{,} \PY{n}{k\PYZus{}on}\PY{p}{,} \PY{n}{k\PYZus{}off}\PY{p}{,} \PY{n}{duration}\PY{p}{,} \PY{n}{stepsize}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{tPol}\PY{p}{)}
 \end{Verbatim}
 
 
@@ -825,105 +1028,105 @@ list of simulated traces - max\_list: list of maximum intensities (for
 later Pon fitting)
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}145}]:} \PY{n}{simtracelist} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}                \PY{c+c1}{\PYZsh{} trace indexed by observation time (MOST IMPORTANT)}
-          \PY{c+c1}{\PYZsh{} optional aspects for visualization:}
-          \PY{n}{simtracelist\PYZus{}seconds} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{trace\PYZus{}by\PYZus{}second}  \PY{c+c1}{\PYZsh{} indexed by second, for comparison (below)}
-          \PY{n}{tel\PYZus{}list} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{tel\PYZus{}list}                     \PY{c+c1}{\PYZsh{} simulated promoter state for example}
+{\color{incolor}In [{\color{incolor}45}]:} \PY{n}{simtracelist} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}                \PY{c+c1}{\PYZsh{} trace indexed by observation time (MOST IMPORTANT)}
+         \PY{c+c1}{\PYZsh{} optional aspects for visualization:}
+         \PY{n}{simtracelist\PYZus{}seconds} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{trace\PYZus{}by\PYZus{}second}  \PY{c+c1}{\PYZsh{} indexed by second, for comparison (below)}
+         \PY{n}{tel\PYZus{}list} \PY{o}{=} \PY{n}{tracePackage}\PY{o}{.}\PY{n}{tel\PYZus{}list}                     \PY{c+c1}{\PYZsh{} simulated promoter state for example}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}146}]:} \PY{c+c1}{\PYZsh{} choose an \PYZdq{}ON\PYZdq{} cell as an example:}
-          \PY{n}{on\PYZus{}sig} \PY{o}{=} \PY{p}{[}\PY{p}{]}
-          \PY{k}{for} \PY{n}{i} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tel\PYZus{}list}\PY{p}{)}\PY{p}{)}\PY{p}{:}
-              \PY{k}{if} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)} \PY{o}{\PYZgt{}} \PY{l+m+mi}{0}\PY{p}{:}
-                  \PY{n}{on\PYZus{}sig}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{n}{i}\PY{p}{)}
-          \PY{n}{randcell} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{random}\PY{o}{.}\PY{n}{choice}\PY{p}{(}\PY{n}{on\PYZus{}sig}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}46}]:} \PY{c+c1}{\PYZsh{} choose an \PYZdq{}ON\PYZdq{} cell as an example:}
+         \PY{n}{on\PYZus{}sig} \PY{o}{=} \PY{p}{[}\PY{p}{]}
+         \PY{k}{for} \PY{n}{i} \PY{o+ow}{in} \PY{n+nb}{range}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tel\PYZus{}list}\PY{p}{)}\PY{p}{)}\PY{p}{:}
+             \PY{k}{if} \PY{n+nb}{sum}\PY{p}{(}\PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{n}{i}\PY{p}{]}\PY{p}{)} \PY{o}{\PYZgt{}} \PY{l+m+mi}{0}\PY{p}{:}
+                 \PY{n}{on\PYZus{}sig}\PY{o}{.}\PY{n}{append}\PY{p}{(}\PY{n}{i}\PY{p}{)}
+         \PY{n}{randcell} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{random}\PY{o}{.}\PY{n}{choice}\PY{p}{(}\PY{n}{on\PYZus{}sig}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}156}]:} \PY{c+c1}{\PYZsh{} Here\PYZsq{}s an example of a simulated telegraph signal with its corresponding polII signal:}
-          \PY{c+c1}{\PYZsh{} Let\PYZsq{}s plot the average function to take a look at it:}
-          \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{l+m+mi}{25}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{c+c1}{\PYZsh{}* stepsize}
-          
-          \PY{n}{fig}\PY{p}{,}\PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{l+m+mi}{2}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{5}\PY{p}{)}\PY{p}{,} \PY{n}{sharex}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
-          \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{,} \PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{n}{randcell}\PY{p}{]}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Simulated Telegraph Promoter Signal}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{,}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{trace\PYZus{}by\PYZus{}second}\PY{p}{[}\PY{n}{randcell}\PY{p}{]}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Simulated polII signal}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          
-          \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{set\PYZus{}xlabel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Time (seconds)}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
-          
-          \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{text}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{t}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{l+m+mi}{20}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+m+mf}{0.92}\PY{p}{,} \PY{n}{s}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{ON}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{text}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{t}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{l+m+mi}{20}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+m+mf}{0.02}\PY{p}{,} \PY{n}{s}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{OFF}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          
-          \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
-\end{Verbatim}
-
-
-    \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_40_0.png}
-    \end{center}
-    { \hspace*{\fill} \\}
-    
-    \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}148}]:} \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{o}{*} \PY{n}{stepsize}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Mean Spot Intensity Over Time}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
-          \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}47}]:} \PY{c+c1}{\PYZsh{} Here\PYZsq{}s an example of a simulated telegraph signal with its corresponding polII signal:}
+         \PY{c+c1}{\PYZsh{} Let\PYZsq{}s plot the average function to take a look at it:}
+         \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{l+m+mi}{25}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{c+c1}{\PYZsh{}* stepsize}
+         
+         \PY{n}{fig}\PY{p}{,}\PY{n}{ax} \PY{o}{=} \PY{n}{plt}\PY{o}{.}\PY{n}{subplots}\PY{p}{(}\PY{l+m+mi}{2}\PY{p}{,} \PY{l+m+mi}{1}\PY{p}{,} \PY{n}{figsize}\PY{o}{=}\PY{p}{(}\PY{l+m+mi}{10}\PY{p}{,}\PY{l+m+mi}{5}\PY{p}{)}\PY{p}{,} \PY{n}{sharex}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+         \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{,} \PY{n}{tel\PYZus{}list}\PY{p}{[}\PY{n}{randcell}\PY{p}{]}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{k}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Simulated Telegraph Promoter Signal}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{t}\PY{p}{,}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{trace\PYZus{}by\PYZus{}second}\PY{p}{[}\PY{n}{randcell}\PY{p}{]}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Simulated polII signal}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         
+         \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{1}\PY{p}{]}\PY{o}{.}\PY{n}{set\PYZus{}xlabel}\PY{p}{(}\PY{l+s+s2}{\PYZdq{}}\PY{l+s+s2}{Time (seconds)}\PY{l+s+s2}{\PYZdq{}}\PY{p}{)}
+         
+         \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{text}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{t}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{l+m+mi}{20}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+m+mf}{0.92}\PY{p}{,} \PY{n}{s}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{ON}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{ax}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{o}{.}\PY{n}{text}\PY{p}{(}\PY{n}{x}\PY{o}{=}\PY{n}{np}\PY{o}{.}\PY{n}{max}\PY{p}{(}\PY{n}{t}\PY{p}{)}\PY{o}{\PYZhy{}}\PY{l+m+mi}{20}\PY{p}{,} \PY{n}{y}\PY{o}{=}\PY{l+m+mf}{0.02}\PY{p}{,} \PY{n}{s}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{OFF}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_41_0.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_58_0.png}
     \end{center}
     { \hspace*{\fill} \\}
     
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}149}]:} \PY{c+c1}{\PYZsh{} define start and stop index}
-          \PY{n}{start\PYZus{}index} \PY{o}{=} \PY{l+m+mi}{250}
-          \PY{n}{stop\PYZus{}index} \PY{o}{=} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}
+{\color{incolor}In [{\color{incolor}48}]:} \PY{n}{t} \PY{o}{=} \PY{n}{np}\PY{o}{.}\PY{n}{arange}\PY{p}{(}\PY{n+nb}{len}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{[}\PY{l+m+mi}{0}\PY{p}{]}\PY{p}{)}\PY{p}{)} \PY{o}{*} \PY{n}{stepsize}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{plot}\PY{p}{(}\PY{n}{np}\PY{o}{.}\PY{n}{mean}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{,} \PY{n}{axis}\PY{o}{=}\PY{l+m+mi}{0}\PY{p}{)}\PY{p}{,} \PY{n}{color}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{g}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{label}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Mean Simulated Trace Intensity Over Time}\PY{l+s+s1}{\PYZsq{}}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{legend}\PY{p}{(}\PY{n}{loc}\PY{o}{=}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{best}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{ylabel}\PY{p}{(}\PY{l+s+s1}{\PYZsq{}}\PY{l+s+s1}{Intensity (counts)}\PY{l+s+s1}{\PYZsq{}}\PY{p}{,} \PY{n}{fontsize}\PY{o}{=}\PY{l+m+mi}{15}\PY{p}{)}
+         \PY{n}{plt}\PY{o}{.}\PY{n}{show}\PY{p}{(}\PY{p}{)}
+\end{Verbatim}
+
+
+    \begin{center}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_59_0.png}
+    \end{center}
+    { \hspace*{\fill} \\}
+    
+    \begin{Verbatim}[commandchars=\\\{\}]
+{\color{incolor}In [{\color{incolor}49}]:} \PY{c+c1}{\PYZsh{} define start and stop index}
+         \PY{n}{start\PYZus{}index} \PY{o}{=} \PY{l+m+mi}{200}
+         \PY{n}{stop\PYZus{}index} \PY{o}{=} \PY{o}{\PYZhy{}}\PY{l+m+mi}{1}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}150}]:} \PY{c+c1}{\PYZsh{} now let\PYZsq{}s clean the data using the autocorrelation package}
-          \PY{n}{simautopackage} \PY{o}{=} \PY{n}{tracePackageAutocorrelation}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{start\PYZus{}index}\PY{p}{,} \PY{n}{stop\PYZus{}index}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}50}]:} \PY{c+c1}{\PYZsh{} now let\PYZsq{}s clean the data using the autocorrelation package}
+         \PY{n}{simautopackage} \PY{o}{=} \PY{n}{tracePackageAutocorrelation}\PY{p}{(}\PY{n}{tracePackage}\PY{o}{.}\PY{n}{tracelist}\PY{p}{,} \PY{n}{loop\PYZus{}function}\PY{p}{,} \PY{n}{start\PYZus{}index}\PY{p}{,} \PY{n}{stop\PYZus{}index}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}151}]:} \PY{c+c1}{\PYZsh{} build the fitting object}
-          \PY{n}{simfitAutoPack} \PY{o}{=} \PY{n}{fitAutocorrelationFunction}\PY{p}{(}\PY{n}{simautopackage}\PY{p}{,} \PY{n}{tPol}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{stepsize}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}51}]:} \PY{c+c1}{\PYZsh{} build the fitting object}
+         \PY{n}{simfitAutoPack} \PY{o}{=} \PY{n}{fitAutocorrelationFunction}\PY{p}{(}\PY{n}{simautopackage}\PY{p}{,} \PY{n}{tPol}\PY{p}{,} \PY{n}{k\PYZus{}elong}\PY{p}{,} \PY{n}{stepsize}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-{\color{incolor}In [{\color{incolor}152}]:} \PY{n}{kon\PYZus{}sim\PYZus{}fit}\PY{p}{,}\PY{n}{koff\PYZus{}sim\PYZus{}fit}\PY{p}{,}\PY{n}{chrtime}\PY{p}{,}\PY{n}{pon}\PY{p}{,}\PY{n}{popt}\PY{p}{,}\PY{n}{pcov} \PY{o}{=} \PY{n}{simfitAutoPack}\PY{o}{.}\PY{n}{leastSquaresAutoFit}\PY{p}{(}\PY{n}{printvals}\PY{o}{=}\PY{k+kc}{True}\PY{p}{,} 
-                                                                                             \PY{n}{upperbound}\PY{o}{=}\PY{l+m+mf}{0.1}\PY{p}{,} \PY{n}{lowerbound}\PY{o}{=}\PY{l+m+mf}{0.0001}\PY{p}{,}\PY{n}{fitpon}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
+{\color{incolor}In [{\color{incolor}52}]:} \PY{n}{kon\PYZus{}sim\PYZus{}fit}\PY{p}{,}\PY{n}{koff\PYZus{}sim\PYZus{}fit}\PY{p}{,}\PY{n}{chrtime}\PY{p}{,}\PY{n}{pon}\PY{p}{,}\PY{n}{popt}\PY{p}{,}\PY{n}{pcov} \PY{o}{=} \PY{n}{simfitAutoPack}\PY{o}{.}\PY{n}{leastSquaresAutoFit}\PY{p}{(}\PY{n}{printvals}\PY{o}{=}\PY{k+kc}{True}\PY{p}{,} 
+                                                                                            \PY{n}{upperbound}\PY{o}{=}\PY{l+m+mi}{1}\PY{o}{/}\PY{n}{tPol}\PY{p}{,} \PY{n}{lowerbound}\PY{o}{=}\PY{l+m+mf}{0.0001}\PY{p}{,}\PY{n}{fitpon}\PY{o}{=}\PY{k+kc}{True}\PY{p}{)}
 \end{Verbatim}
 
 
     \begin{Verbatim}[commandchars=\\\{\}]
-Pon                       =  0.372401108038417
-k\_on + k\_off              =  0.008887160944849584 s\^{}-1
-k\_on                      =  0.0033095885831777297
-k\_off                     =  0.005577572361671854
+Pon                       = 0.31 +/- 0.019493883438223596
+k\_on + k\_off              = 0.00337 s\^{}-1
+k\_on                      = 0.00106 +\textbackslash{}-0.00006 s\^{}-1
+k\_off                     = 0.00231 +\textbackslash{}-0.00006 s\^{}-1
 t\_polII\_block             =  6 seconds
-characteristic timescale  =  112.52187354382667 seconds
-covariance                =  4.464951695649741e-08
+characteristic timescale  = 296.67 seconds
+covariance                =  3.4780959768618646e-09
 
     \end{Verbatim}
 
     \begin{center}
-    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_45_1.png}
+    \adjustimage{max size={0.9\linewidth}{0.9\paperheight}}{output_63_1.png}
     \end{center}
     { \hspace*{\fill} \\}
     
     Recall that our inputs were \(k_{on}=\) 0.001347 and \(k_{off}=\)
-0.00299. In other words, our simulated system behaves pretty similarly
-to our real one.
+0.0031. In other words, our simulated system behaves pretty similarly to
+our real one.
 
 
     % Add a bibliography block to the postdoc

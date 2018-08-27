@@ -240,8 +240,9 @@ class fitAutocorrelationFunction():
         t = np.arange(len(self.autoav)) * self.stepsize    # fit function in units of seconds
         self.autocorrFunc = autocorrelationAnalyticPack.autocorrAnalyticFunction
         popt,pcov = curve_fit(f=self.autocorrFunc, xdata=t[1:], 
-                        ydata=self.autoav[1:], bounds=bounds)#, sigma=self.auto_err[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
-
+                        ydata=self.autoav[1:], sigma=self.auto_err[1:], bounds=bounds)#, sigma=self.auto_err[1:])  # fit everything but first (pinned) data point, using lowerlim distance as standard error
+        
+        perr = np.sqrt(np.diag(pcov))   # 1-sigma standard error on parameters
         ratesum = popt[0]
         kon_fit = ratesum*pon
         koff_fit = ratesum - kon_fit
@@ -261,15 +262,18 @@ class fitAutocorrelationFunction():
         #koff_up_err = np.abs(koff_fit - koff_up)
         #koff_low_err = np.abs(koff_fit - koff_low)
 
+        kon_err = perr[0]
+        koff_err = perr[0] #np.sqrt((perr[0]**2 + ponstd**2))    # combine error in quadrature
+
         chrtime = 1 / ratesum
 
         if printvals == True:
-            print("Pon                       = ", pon)#, '+/-'), ponstd)
-            print("k_on + k_off              = ", ratesum, 's^-1')
-            print("k_on                      = ", kon_fit)#, '+', kon_up_err, '-', kon_low_err)
-            print("k_off                     = ", koff_fit)#, '+/-', koff_up_err)
+            print("Pon                       = {:.2f}".format(pon), '+/-', ponstd)
+            print("k_on + k_off              = {:.5f}".format(ratesum), 's^-1')
+            print("k_on                      = {:.5f}".format(kon_fit), '+\-{:.5f}'.format(kon_err), 's^-1')
+            print("k_off                     = {:.5f}".format(koff_fit), '+\-{:.5f}'.format(koff_err), 's^-1')
             print("t_polII_block             =  6 seconds")
-            print("characteristic timescale  = ", chrtime, 'seconds')
+            print("characteristic timescale  = {:.2f}".format(chrtime), 'seconds')
             print("covariance                = ", pcov[0][0])
 
             # incorporate a plot of the fitted autocorrelation with data
@@ -283,18 +287,18 @@ class fitAutocorrelationFunction():
                         yerr=(self.auto_err*1, self.auto_err*1), 
                                 ecolor='b', alpha=0.12, label = r'1-$\sigma$ weighted standard error from mean')  
 
-            ax.plot(chrtime, 0, marker='+', zorder=10, linestyle='none',
-                                            color='#de2d26', label='Characteristic Time Point')
+            #ax.plot(chrtime, 0, marker='+', zorder=10, linestyle='none',
+                                            #color='#de2d26', label='Characteristic Time Point')
 
             plt.legend(loc="best")
             ax.set_ylim(-1, 1.3)
             ax.set_xlabel(r'Wait Time $\tau$ (seconds)', fontsize=15)
             ax.set_ylabel(r'Autocorrelation M($\tau$)', fontsize=15)
             # add in a summary of our fitted parameters
-            plt.text(x=50, y=-.8, s='Analytic fitted parameters \n\n$k_{on}$ = ' 
-                                            + str(kon_fit) + '\n$k_{off}$ = ' + str(koff_fit))
+            plt.text(x=50, y=-.8, s='Analytic fitted parameters \n\n$k_{on}$ =' +  '{:.5f}'.format(kon_fit) 
+                                + '$\pm${:.5f}'.format(kon_err) + '\n$k_{off}$ =' + '{:.5f}'.format(koff_fit) + '$\pm${:.5f}'.format(koff_err))
             plt.show()
 
 
-        return kon_fit,koff_fit,chrtime,pon,popt,pcov
+        return kon_fit,koff_fit,chrtime,pon,popt,perr
 

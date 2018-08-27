@@ -103,6 +103,16 @@ class tracePackageAutocorrelation:
         for i in calibrated_tracelist:
             avg_flors.append(np.mean(i))                   # stack in an array
 
+        # now fit pon and save as an aspect of the processing package
+        loops = loop_function                                            # pull in interpolated loop function    
+        pon = np.mean(avg_flors) / np.sum(loops)
+        pon_std = (np.std(avg_flors) 
+                                / np.sqrt(len(avg_flors))) / np.sum(loops)     # standard error on pon for uncertainty estimations
+        
+        pon_low = pon - pon_std
+        pon_hi = pon + pon_std                             # upper and lower bounds for pon fit
+                                             
+        self.pon = pon
         self.loop_function = loop_function                 # for fitting reference
         self.avgflors = np.asarray(avg_flors)              # return array of average fluorescence
         self.autoav = autoav[1:]                           # ignore the unfitted first point
